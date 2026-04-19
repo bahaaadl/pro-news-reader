@@ -27,6 +27,11 @@ def get_image_bytes(url):
 # --- كود CSS الاحترافي ---
 st.markdown("""
 <style>
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+.stDeployButton {display:none;}
+
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
 
 * {
