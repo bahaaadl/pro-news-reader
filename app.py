@@ -78,7 +78,7 @@ if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>🔒 دخول النظام</h1>", unsafe_allow_html=True)
     
     valid_users = {
-        "mjw1": "@@@", "mjw2": "@@@", "mjw3": "@@@", "mjw4": "@@@", "mjw5": "@@@"
+        "mwj1": "@@@", "mwj2": "@@@", "mwj3": "@@@", "mwj4": "@@@", "mwj5": "@@@"
     }
     
     col1, col2, col3 = st.columns([1, 2, 1])
