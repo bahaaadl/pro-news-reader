@@ -65,8 +65,11 @@ def fetch_news():
         new_entries = []
         is_first = len(st.session_state.news_items) == 0
         
-        for item in st.session_state.news_items: item["is_new"] = False
+        # إطفاء الإضاءة عن الأخبار القديمة
+        for item in st.session_state.news_items: 
+            item["is_new"] = False
         
+        # قراءة الأخبار (تأتي افتراضياً من الأحدث للأقدم)
         for entry in feed.entries[:50]:
             if entry.link not in st.session_state.seen_links:
                 pub = entry.get('published_parsed')
@@ -82,13 +85,17 @@ def fetch_news():
                 clean_desc = re.sub('<.*?>', '', entry.get('description', '')).replace('\n', ' ')
                 
                 new_entries.append({
-                    "title": html.escape(clean_title), "link": entry.link, "desc": html.escape(clean_desc),
-                    "date": dt_str, "img": img, "is_new": not is_first
+                    "title": html.escape(clean_title), 
+                    "link": entry.link, 
+                    "desc": html.escape(clean_desc),
+                    "date": dt_str, 
+                    "img": img, 
+                    "is_new": not is_first
                 })
                 st.session_state.seen_links.add(entry.link)
         
+        # دمج الأخبار الجديدة في أعلى القائمة مباشرة (بدون أمر reverse الخاطئ)
         if new_entries:
-            if is_first: new_entries.reverse()
             st.session_state.news_items = new_entries + st.session_state.news_items
     except: pass
 
@@ -106,7 +113,6 @@ for item in st.session_state.news_items:
     badge = "<div style='color:#FFDF00; font-weight:bold;'>⭐ جديد</div>" if item["is_new"] else ""
     img_tag = f"<img src='{item['img']}'>" if item['img'] else "لا توجد صورة"
     
-    # السلاح السري: كود HTML كله في سطر واحد بدون أي مسافات لتجنب التكسر
     html_content = f"<div class='{card_class}'><div class='news-content'>{badge}<div style='font-size:{f_size}px; font-weight:bold; color:white;'>{item['title']}</div><div style='color:#87CEEB; font-size:14px;'>{item['date']}</div><div style='font-size:{max(12, f_size-6)}px; color:#ccc; margin:10px 0;'>{item['desc']}</div><a href='{item['link']}' target='_blank' class='read-more-btn'>فتح الرابط 🔗</a></div><div class='news-image-container'>{img_tag}</div></div>"
     
     st.markdown(html_content, unsafe_allow_html=True)
