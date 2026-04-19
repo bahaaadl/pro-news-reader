@@ -7,6 +7,7 @@ import re
 import html
 import time
 from streamlit_cookies_manager import EncryptedCookieManager
+import uuid
 
 # --- إعداد الكوكيز (كلمة سر التشفير) ---
 cookies = EncryptedCookieManager(password="L6V299S8B1N0M3X4Z5Q6W7E8")
@@ -41,20 +42,43 @@ def play_notification_sound():
     html_str = f'<audio autoplay style="display:none;"><source src="{sound_url}" type="audio/mp3"></audio>'
     st.components.v1.html(html_str, height=0)
 
-# --- نظام تسجيل الدخول المتعدد ---
+# --- نظام تسجيل الدخول المتعدد (مع منع الدخول المزدوج) ---
+
+# إنشاء قاموس مركزي على السيرفر لتتبع من هو متصل الآن
+# نستخدم st.cache_resource لضمان بقاء هذا القاموس مشتركاً بين كل الزوار
+@st.cache_resource
+def get_active_sessions():
+    return {} # {username: session_id}
+
+active_sessions = get_active_sessions()
+
+# توليد معرف فريد (ID) لهذه المتصفح/الجلسة المحددة
+if "my_session_id" not in st.session_state:
+    st.session_state.my_session_id = str(uuid.uuid4())
+
+# استرجاع حالة الدخول واسم المستخدم من الكوكيز
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = cookies.get("is_logged_in") == "true"
+if "current_username" not in st.session_state:
+    st.session_state.current_username = cookies.get("current_username")
+
+# حماية إضافية: إذا كان مسجلاً في الكوكيز، تأكد أن السيرفر ما زال يعترف بجلسة هذا المتصفح
+if st.session_state.logged_in and st.session_state.current_username:
+    u = st.session_state.current_username
+    my_id = st.session_state.my_session_id
+    # إذا كان الحساب مسجلاً على السيرفر برقم تعريف (ID) مختلف، قم بطرد هذا المتصفح
+    if active_sessions.get(u) != my_id:
+        st.session_state.logged_in = False
+        cookies["is_logged_in"] = "false"
+        cookies["current_username"] = ""
+        cookies.save()
+
 
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>🔒 دخول النظام</h1>", unsafe_allow_html=True)
     
-    # قائمة المستخدمين الجديدة حسب طلبك
     valid_users = {
-        "mjw1": "@@@",
-        "mjw2": "@@@",
-        "mjw3": "@@@",
-        "mjw4": "@@@",
-        "mjw5": "@@@"
+        "mjw1": "@@@", "mjw2": "@@@", "mjw3": "@@@", "mjw4": "@@@", "mjw5": "@@@"
     }
     
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -63,10 +87,19 @@ if not st.session_state.logged_in:
         p = st.text_input("كلمة المرور", type="password")
         if st.button("دخول", use_container_width=True):
             if u in valid_users and valid_users[u] == p:
-                st.session_state.logged_in = True
-                cookies["is_logged_in"] = "true"
-                cookies.save()
-                st.rerun()
+                # التحقق مما إذا كان الحساب مستخدماً حالياً من قبل شخص آخر
+                if u in active_sessions and active_sessions[u] != st.session_state.my_session_id:
+                    st.error(f"❌ عذراً، الحساب '{u}' مستخدم حالياً من جهاز آخر!")
+                else:
+                    # تسجيل الدخول بنجاح وحجز الحساب على السيرفر
+                    st.session_state.logged_in = True
+                    st.session_state.current_username = u
+                    active_sessions[u] = st.session_state.my_session_id
+                    
+                    cookies["is_logged_in"] = "true"
+                    cookies["current_username"] = u
+                    cookies.save()
+                    st.rerun()
             else: 
                 st.error("اسم المستخدم أو كلمة المرور غير صحيحة!")
     st.stop()
@@ -113,15 +146,28 @@ def fetch_news():
 
 fetch_news()
 
-# --- العرض ---
-st.sidebar.title("الإعدادات")
-f_size = st.sidebar.slider("حجم الخط", 15, 50, 22)
-if st.sidebar.button("خروج 🚪"):
-    cookies["is_logged_in"] = "false"
-    cookies.save()
-    st.session_state.logged_in = False
-    st.rerun()
+# --- شريط الإعدادات العلوي ---
+col_logout, col_space, col_slider = st.columns([1, 2, 2])
+with col_logout:
+    if st.button("تسجيل الخروج 🚪", use_container_width=True):
+        # تحرير الحساب من السيرفر ليتمكن الآخرون من استخدامه
+        u = st.session_state.current_username
+        if u in active_sessions:
+            del active_sessions[u]
+            
+        cookies["is_logged_in"] = "false"
+        cookies["current_username"] = ""
+        cookies.save()
+        st.session_state.logged_in = False
+        st.rerun()
 
+with col_slider:
+    st.markdown("<div style='text-align: right; color: white; margin-bottom: -20px; font-weight: bold;'>حجم الخط:</div>", unsafe_allow_html=True)
+    f_size = st.slider("", 15, 50, 22, label_visibility="collapsed")
+
+st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
+
+# --- عرض الأخبار ---
 for item in st.session_state.news_items:
     card_class = "news-card new-item" if item["is_new"] else "news-card"
     badge = "<div style='color:#FFDF00; font-weight:bold;'>⭐ جديد</div>" if item["is_new"] else ""
