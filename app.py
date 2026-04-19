@@ -6,10 +6,9 @@ import calendar
 import re
 import html
 import time
-import base64
 from streamlit_cookies_manager import EncryptedCookieManager
 
-# --- إعداد الكوكيز ---
+# --- إعداد الكوكيز (كلمة سر التشفير) ---
 cookies = EncryptedCookieManager(password="L6V299S8B1N0M3X4Z5Q6W7E8")
 if not cookies.ready():
     st.stop()
@@ -17,18 +16,7 @@ if not cookies.ready():
 # --- إعدادات الصفحة ---
 st.set_page_config(page_title="قارئ الأخبار الاحترافي", layout="wide", page_icon="📰")
 
-# --- دالة لتشغيل صوت التنبيه ---
-def play_notification_sound():
-    # رابط لصوت تنبيه خفيف (Notification sound)
-    sound_url = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
-    html_str = f"""
-        <audio autoplay style="display:none;">
-            <source src="{sound_url}" type="audio/mp3">
-        </audio>
-    """
-    st.components.v1.html(html_str, height=0)
-
-# --- CSS المحسن ---
+# --- CSS لإخفاء شريط الإعدادات وتحسين التصميم ---
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -47,26 +35,43 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- تسجيل الدخول ---
+# --- دالة لتشغيل صوت التنبيه ---
+def play_notification_sound():
+    sound_url = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
+    html_str = f'<audio autoplay style="display:none;"><source src="{sound_url}" type="audio/mp3"></audio>'
+    st.components.v1.html(html_str, height=0)
+
+# --- نظام تسجيل الدخول المتعدد ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = cookies.get("is_logged_in") == "true"
 
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>🔒 دخول النظام</h1>", unsafe_allow_html=True)
+    
+    # قائمة المستخدمين الجديدة حسب طلبك
+    valid_users = {
+        "mjw1": "@@@",
+        "mjw2": "@@@",
+        "mjw3": "@@@",
+        "mjw4": "@@@",
+        "mjw5": "@@@"
+    }
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         u = st.text_input("المستخدم")
         p = st.text_input("كلمة المرور", type="password")
         if st.button("دخول", use_container_width=True):
-            if u == "admin" and p == "1234":
+            if u in valid_users and valid_users[u] == p:
                 st.session_state.logged_in = True
                 cookies["is_logged_in"] = "true"
                 cookies.save()
                 st.rerun()
-            else: st.error("خطأ!")
+            else: 
+                st.error("اسم المستخدم أو كلمة المرور غير صحيحة!")
     st.stop()
 
-# --- جلب الأخبار مع منطق التنبيه ---
+# --- جلب الأخبار ---
 if "seen_links" not in st.session_state: st.session_state.seen_links = set()
 if "news_items" not in st.session_state: st.session_state.news_items = []
 
@@ -100,22 +105,22 @@ def fetch_news():
                 st.session_state.seen_links.add(entry.link)
         
         if new_entries:
-            # إذا لم تكن المرة الأولى، أطلق التنبيهات
             if not is_first:
                 st.toast(f"🔔 تم استلام {len(new_entries)} أخبار جديدة!", icon="🆕")
                 play_notification_sound()
-            
             st.session_state.news_items = new_entries + st.session_state.news_items
     except: pass
 
 fetch_news()
 
-# --- واجهة العرض ---
+# --- العرض ---
 st.sidebar.title("الإعدادات")
 f_size = st.sidebar.slider("حجم الخط", 15, 50, 22)
-if st.sidebar.button("خروج"):
-    cookies["is_logged_in"] = "false"; cookies.save()
-    st.session_state.logged_in = False; st.rerun()
+if st.sidebar.button("خروج 🚪"):
+    cookies["is_logged_in"] = "false"
+    cookies.save()
+    st.session_state.logged_in = False
+    st.rerun()
 
 for item in st.session_state.news_items:
     card_class = "news-card new-item" if item["is_new"] else "news-card"
