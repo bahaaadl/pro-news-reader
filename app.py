@@ -6,19 +6,23 @@ import calendar
 import re
 import html
 import time
-from io import BytesIO
+import base64
 
 # --- إعدادات صفحة الموقع ---
 st.set_page_config(page_title="قارئ الأخبار الاحترافي", layout="wide", page_icon="📰")
 
-# --- دالة تحميل بيانات الصورة (مع تخزين مؤقت لعدم إثقال الموقع) ---
+# --- دالة تحميل الصور وتشفيرها (لتخطي الحماية) ---
 @st.cache_data(show_spinner=False)
 def get_image_bytes(url):
     try:
-        response = requests.get(url, timeout=5)
-        return response.content
+        # إضافة User-Agent لكي يظن المصدر أننا متصفح حقيقي وليس روبوت
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            return response.content
     except:
-        return None
+        pass
+    return None
 
 # --- كود CSS الاحترافي ---
 st.markdown("""
@@ -94,6 +98,24 @@ st.markdown("""
 
 .read-more-btn:hover {
     background-color: #155a8a;
+}
+
+.download-btn {
+    background-color: #28a745;
+    color: white !important;
+    padding: 8px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 16px;
+    display: inline-block;
+    margin-top: 10px;
+    margin-right: 10px;
+    transition: 0.3s;
+}
+
+.download-btn:hover {
+    background-color: #218838;
 }
 
 @media (max-width: 768px) {
@@ -200,7 +222,20 @@ fetch_news()
 for item in st.session_state.news_items:
     card_class = "news-card new-item" if item["is_new"] else "news-card"
     new_badge = "<div style='color: #FFDF00; font-weight: bold; font-size: 18px; margin-bottom: 10px;'>⭐ جديد</div>" if item["is_new"] else ""
-    img_content = f"<img src='{item['img']}'>" if item['img'] else "لا توجد صورة"
+    
+    img_content = "لا توجد صورة"
+    download_btn = ""
+
+    # تحويل الصورة إلى Base64 وزرعها مباشرة في الكود لتخطي الحماية
+    if item['img']:
+        img_bytes = get_image_bytes(item['img'])
+        if img_bytes:
+            b64_img = base64.b64encode(img_bytes).decode('utf-8')
+            img_src = f"data:image/jpeg;base64,{b64_img}"
+            img_content = f"<img src='{img_src}'>"
+            
+            # زر تنزيل مبني بـ HTML ليظهر داخل البطاقة لونه أخضر أنيق
+            download_btn = f"<a href='{img_src}' download='news_image_{int(time.time())}.jpg' class='download-btn'>تنزيل الصورة 📥</a>"
 
     card_html = f"""
     <div class="{card_class}">
@@ -209,8 +244,9 @@ for item in st.session_state.news_items:
             <div style="font-size: {st.session_state.font_size}px; font-weight: bold; color: white; line-height: 1.4; margin-bottom: 5px;">{item['title']}</div>
             <div style="font-size: 14px; color: #87CEEB; margin-bottom: 15px;">{item['date']}</div>
             <div style="font-size: {max(14, st.session_state.font_size - 6)}px; color: #cccccc; line-height: 1.6; margin-bottom: 15px;">{item['desc']}</div>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <a href="{item['link']}" target="_blank" class="read-more-btn">قراءة الخبر كاملاً 🔗</a>
+                {download_btn}
             </div>
         </div>
         <div class="news-image-container">
@@ -222,19 +258,6 @@ for item in st.session_state.news_items:
     # دمج النص لإجبار المتصفح على قراءته كتصميم
     safe_html = "".join([line.strip() for line in card_html.split('\n')])
     st.markdown(safe_html, unsafe_allow_html=True)
-    
-    # --- إضافة زر التنزيل بشكل أنيق ---
-    if item["img"]:
-        img_data = get_image_bytes(item["img"])
-        if img_data:
-            st.download_button(
-                label="تنزيل الصورة 📥",
-                data=img_data,
-                file_name=f"news_image_{int(time.time())}.png",
-                mime="image/png",
-                key=item['link']
-            )
-    st.markdown("<br>", unsafe_allow_html=True)
 
 # التحديث التلقائي الصامت كل 5 ثوانٍ
 time.sleep(5)
