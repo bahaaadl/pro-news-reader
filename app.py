@@ -6,9 +6,10 @@ import calendar
 import re
 import html
 import time
+import base64
 from streamlit_cookies_manager import EncryptedCookieManager
 
-# --- إعداد الكوكيز (كلمة سر التشفير) ---
+# --- إعداد الكوكيز ---
 cookies = EncryptedCookieManager(password="L6V299S8B1N0M3X4Z5Q6W7E8")
 if not cookies.ready():
     st.stop()
@@ -16,7 +17,18 @@ if not cookies.ready():
 # --- إعدادات الصفحة ---
 st.set_page_config(page_title="قارئ الأخبار الاحترافي", layout="wide", page_icon="📰")
 
-# --- CSS لإخفاء شريط الإعدادات وتحسين التصميم ---
+# --- دالة لتشغيل صوت التنبيه ---
+def play_notification_sound():
+    # رابط لصوت تنبيه خفيف (Notification sound)
+    sound_url = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
+    html_str = f"""
+        <audio autoplay style="display:none;">
+            <source src="{sound_url}" type="audio/mp3">
+        </audio>
+    """
+    st.components.v1.html(html_str, height=0)
+
+# --- CSS المحسن ---
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -35,7 +47,7 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- نظام تسجيل الدخول المستقر ---
+# --- تسجيل الدخول ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = cookies.get("is_logged_in") == "true"
 
@@ -54,7 +66,7 @@ if not st.session_state.logged_in:
             else: st.error("خطأ!")
     st.stop()
 
-# --- جلب الأخبار ---
+# --- جلب الأخبار مع منطق التنبيه ---
 if "seen_links" not in st.session_state: st.session_state.seen_links = set()
 if "news_items" not in st.session_state: st.session_state.news_items = []
 
@@ -65,11 +77,8 @@ def fetch_news():
         new_entries = []
         is_first = len(st.session_state.news_items) == 0
         
-        # إطفاء الإضاءة عن الأخبار القديمة
-        for item in st.session_state.news_items: 
-            item["is_new"] = False
+        for item in st.session_state.news_items: item["is_new"] = False
         
-        # قراءة الأخبار (تأتي افتراضياً من الأحدث للأقدم)
         for entry in feed.entries[:50]:
             if entry.link not in st.session_state.seen_links:
                 pub = entry.get('published_parsed')
@@ -85,23 +94,23 @@ def fetch_news():
                 clean_desc = re.sub('<.*?>', '', entry.get('description', '')).replace('\n', ' ')
                 
                 new_entries.append({
-                    "title": html.escape(clean_title), 
-                    "link": entry.link, 
-                    "desc": html.escape(clean_desc),
-                    "date": dt_str, 
-                    "img": img, 
-                    "is_new": not is_first
+                    "title": html.escape(clean_title), "link": entry.link, "desc": html.escape(clean_desc),
+                    "date": dt_str, "img": img, "is_new": not is_first
                 })
                 st.session_state.seen_links.add(entry.link)
         
-        # دمج الأخبار الجديدة في أعلى القائمة مباشرة (بدون أمر reverse الخاطئ)
         if new_entries:
+            # إذا لم تكن المرة الأولى، أطلق التنبيهات
+            if not is_first:
+                st.toast(f"🔔 تم استلام {len(new_entries)} أخبار جديدة!", icon="🆕")
+                play_notification_sound()
+            
             st.session_state.news_items = new_entries + st.session_state.news_items
     except: pass
 
 fetch_news()
 
-# --- العرض ---
+# --- واجهة العرض ---
 st.sidebar.title("الإعدادات")
 f_size = st.sidebar.slider("حجم الخط", 15, 50, 22)
 if st.sidebar.button("خروج"):
@@ -122,6 +131,5 @@ for item in st.session_state.news_items:
             st.download_button("تنزيل الصورة 📥", requests.get(item['img']).content, f"img_{int(time.time())}.jpg", "image/jpeg", key=item['link'])
         except: pass
 
-# تحديث تلقائي كل 10 ثوانٍ لحماية الذاكرة
 time.sleep(10)
 st.rerun()
