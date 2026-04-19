@@ -65,7 +65,6 @@ def fetch_news():
         new_entries = []
         is_first = len(st.session_state.news_items) == 0
         
-        # تصفير حالة "جديد" للأخبار السابقة
         for item in st.session_state.news_items: item["is_new"] = False
         
         for entry in feed.entries[:50]:
@@ -79,11 +78,11 @@ def fetch_news():
                 img = next((l.href for l in entry.get('links', []) if 'image' in l.type), None)
                 if not img and 'media_content' in entry: img = entry.media_content[0].get('url')
                 
-                clean_title = re.sub('<.*?>', '', entry.title)
-                clean_desc = re.sub('<.*?>', '', entry.get('description', ''))
+                clean_title = re.sub('<.*?>', '', entry.title).replace('\n', ' ')
+                clean_desc = re.sub('<.*?>', '', entry.get('description', '')).replace('\n', ' ')
                 
                 new_entries.append({
-                    "title": clean_title, "link": entry.link, "desc": clean_desc,
+                    "title": html.escape(clean_title), "link": entry.link, "desc": html.escape(clean_desc),
                     "date": dt_str, "img": img, "is_new": not is_first
                 })
                 st.session_state.seen_links.add(entry.link)
@@ -107,28 +106,16 @@ for item in st.session_state.news_items:
     badge = "<div style='color:#FFDF00; font-weight:bold;'>⭐ جديد</div>" if item["is_new"] else ""
     img_tag = f"<img src='{item['img']}'>" if item['img'] else "لا توجد صورة"
     
-    html_content = f"""
-    <div class='{card_class}'>
-        <div class='news-content'>
-            {badge}
-            <div style='font-size:{f_size}px; font-weight:bold; color:white;'>{item['title']}</div>
-            <div style='color:#87CEEB; font-size:14px;'>{item['date']}</div>
-            <div style='font-size:{max(12, f_size-6)}px; color:#ccc; margin:10px 0;'>{item['desc']}</div>
-            <a href='{item['link']}' target='_blank' class='read-more-btn'>فتح الرابط 🔗</a>
-        </div>
-        <div class='news-image-container'>{img_tag}</div>
-    </div>
-    """
+    # السلاح السري: كود HTML كله في سطر واحد بدون أي مسافات لتجنب التكسر
+    html_content = f"<div class='{card_class}'><div class='news-content'>{badge}<div style='font-size:{f_size}px; font-weight:bold; color:white;'>{item['title']}</div><div style='color:#87CEEB; font-size:14px;'>{item['date']}</div><div style='font-size:{max(12, f_size-6)}px; color:#ccc; margin:10px 0;'>{item['desc']}</div><a href='{item['link']}' target='_blank' class='read-more-btn'>فتح الرابط 🔗</a></div><div class='news-image-container'>{img_tag}</div></div>"
+    
     st.markdown(html_content, unsafe_allow_html=True)
     
-    # زر التنزيل بطريقة مستقرة (خارج الـ HTML المخصص لتوفير الذاكرة)
     if item['img']:
         try:
-            # تحميل الصورة فقط عند الحاجة للتنزيل لتوفير الذاكرة
-            st.download_button("تنزيل الصورة 📥", requests.get(item['img']).content, 
-                               f"img_{int(time.time())}.jpg", "image/jpeg", key=item['link'])
+            st.download_button("تنزيل الصورة 📥", requests.get(item['img']).content, f"img_{int(time.time())}.jpg", "image/jpeg", key=item['link'])
         except: pass
 
-# تحديث تلقائي كل 10 ثوانٍ (زيادة الوقت تريح المتصفح)
+# تحديث تلقائي كل 10 ثوانٍ لحماية الذاكرة
 time.sleep(10)
 st.rerun()
