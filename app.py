@@ -169,7 +169,7 @@ with col_slider:
 st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
 
 # ==========================================
-# --- أداة التقاط التغريدات (مع نظام العداد اليومي) ---
+# --- أداة التقاط التغريدات (مع نظام العداد المنفصل لكل مستخدم) ---
 # ==========================================
 STATS_FILE = "user_usage.json"
 LIMIT = 50
@@ -177,38 +177,59 @@ LIMIT = 50
 def load_usage():
     """تحميل البيانات وتصفيرها تلقائياً في اليوم الجديد"""
     today = str(date.today())
+    default_data = {"last_date": today, "users": {}}
+    
     if os.path.exists(STATS_FILE):
-        with open(STATS_FILE, "r") as f:
-            try:
+        try:
+            with open(STATS_FILE, "r") as f:
                 data = json.load(f)
+                # إذا دخلنا في يوم جديد، نرجع العدادات صفر
                 if data.get("last_date") != today:
-                    return {"last_date": today, "count": 0}
+                    return default_data
+                # حماية: إذا كان الملف القديم لا يحتوي على "users"
+                if "users" not in data:
+                    return default_data
                 return data
-            except:
-                return {"last_date": today, "count": 0}
-    return {"last_date": today, "count": 0}
+        except:
+            return default_data
+    return default_data
 
-def increment_usage(current_count):
-    """زيادة العداد وحفظه في الملف"""
+def get_user_count(data, username):
+    """جلب عدد الصور المسحوبة للمستخدم الحالي فقط"""
+    return data["users"].get(username, 0)
+
+def increment_usage(username):
+    """زيادة العداد وحفظه باسم المستخدم الحالي فقط"""
+    data = load_usage()
+    current_count = get_user_count(data, username)
+    
+    # تحديث رقم المستخدم
+    data["users"][username] = current_count + 1
+    data["last_date"] = str(date.today())
+    
     with open(STATS_FILE, "w") as f:
-        json.dump({"last_date": str(date.today()), "count": current_count + 1}, f)
+        json.dump(data, f)
 
 if "snapshot_img" not in st.session_state:
     st.session_state.snapshot_img = None
 
 st.subheader("📸 استخراج صورة")
 
-# جلب بيانات الاستخدام الحالية
-usage = load_usage()
-remaining = LIMIT - usage["count"]
+# جلب اسم المستخدم الحالي من الجلسة
+current_user = st.session_state.current_username
+
+# جلب بيانات الاستخدام وحساب المتبقي لهذا المستخدم تحديداً
+usage_data = load_usage()
+user_count = get_user_count(usage_data, current_user)
+remaining = LIMIT - user_count
 
 # التحقق من الحد قبل السماح بالالتقاط
-if usage["count"] >= LIMIT:
-    st.error(f"⚠️ لقد تجاوزت الحد المطلوب ({LIMIT} صورة يومياً). سيتم فتح النافذة مجدداً وتصفير العداد في اليوم التالي.")
+if user_count >= LIMIT:
+    st.error(f"⚠️ عذراً {current_user}، لقد تجاوزت الحد المسموح لك ({LIMIT} صورة يومياً). سيتم تصفير عدادك غداً.")
 else:
     APIFLASH_KEY = "85706f41977042d3b642677a65d0d81c" 
 
-    with st.expander(f"اضغط هنا لفتح أداة الالتقاط (المتبقي اليوم: {remaining})", expanded=False):
+    with st.expander(f"اضغط هنا لفتح أداة الالتقاط (المتبقي لك اليوم: {remaining})", expanded=False):
         col_input, col_btn = st.columns([4, 1])
         with col_input:
             tweet_url = st.text_input("رابط التغريدة", placeholder="https://x.com/...", label_visibility="collapsed")
@@ -247,8 +268,10 @@ else:
                     resp = requests.get(api_url)
                     if resp.status_code == 200:
                         st.session_state.snapshot_img = resp.content
-                        increment_usage(usage["count"]) # زيادة العداد بمقدار 1
-                        st.rerun() # تحديث الصفحة فوراً لتعديل الرقم المتبقي
+                        
+                        # ✅ زيادة العداد لهذا المستخدم فقط
+                        increment_usage(current_user) 
+                        st.rerun() 
                     else:
                         st.error(f"❌ فشل الالتقاط. كود الخطأ: {resp.status_code}")
                 except Exception as e:
