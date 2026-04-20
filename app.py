@@ -198,7 +198,7 @@ if "snapshot_img" not in st.session_state:
 st.subheader("📸 استخراج لقطة شاشة نقية (نص كامل)")
 
 # 🔴🔴🔴 لا تنسَ وضع مفتاحك هنا 🔴🔴🔴
-APIFLASH_KEY = "ضع_مفتاحك_هنا" 
+APIFLASH_KEY = "85706f41977042d3b642677a65d0d81c" 
 
 with st.expander("اضغط هنا لفتح أداة الالتقاط اليدوية", expanded=False):
     col_input, col_btn = st.columns([4, 1])
