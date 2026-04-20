@@ -8,6 +8,7 @@ import html
 import time
 from streamlit_cookies_manager import EncryptedCookieManager
 import uuid
+import urllib.parse # <-- تمت إضافة هذه المكتبة لتعمل مع ApiFlash
 
 # --- إعداد الكوكيز (كلمة سر التشفير) ---
 cookies = EncryptedCookieManager(password="L6V299S8B1N0M3X4Z5Q6W7E8")
@@ -48,10 +49,10 @@ def play_notification_sound():
     html_str = f'<audio autoplay style="display:none;"><source src="{sound_url}" type="audio/mp3"></audio>'
     st.components.v1.html(html_str, height=0)
 
-# --- نظام تسجيل الدخول المتعدد (مع منع الدخول المزدوج) ---
+# --- نظام تسجيل الدخول المتعدد ---
 @st.cache_resource
 def get_active_sessions():
-    return {} # القاموس المركزي لحفظ الأجهزة المتصلة
+    return {}
 
 active_sessions = get_active_sessions()
 
@@ -60,7 +61,6 @@ if "logged_in" not in st.session_state:
 if "current_username" not in st.session_state:
     st.session_state.current_username = cookies.get("current_username")
 
-# حماية إضافية: إذا دخل شخص آخر وطردك، سيتم تسجيل خروجك تلقائياً
 if st.session_state.logged_in and st.session_state.current_username:
     u = st.session_state.current_username
     if active_sessions.get(u) != device_id:
@@ -81,7 +81,6 @@ if not st.session_state.logged_in:
         u = st.text_input("المستخدم")
         p = st.text_input("كلمة المرور", type="password")
         
-        # زر إجباري يظهر فقط إذا كان الحساب مستخدماً حالياً
         force_login = False
         if u in active_sessions and active_sessions[u] != device_id:
             st.warning(f"⚠️ الحساب '{u}' مستخدم حالياً من جهاز آخر.")
@@ -94,7 +93,7 @@ if not st.session_state.logged_in:
                 else:
                     st.session_state.logged_in = True
                     st.session_state.current_username = u
-                    active_sessions[u] = device_id # تسجيل هذا الجهاز كالجهاز الفعال
+                    active_sessions[u] = device_id 
                     
                     cookies["is_logged_in"] = "true"
                     cookies["current_username"] = u
@@ -165,6 +164,63 @@ with col_slider:
     f_size = st.slider("", 15, 50, 22, label_visibility="collapsed")
 
 st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
+
+# ==========================================
+# --- أداة التقاط التغريدات (ApiFlash) ---
+# ==========================================
+if "snapshot_img" not in st.session_state:
+    st.session_state.snapshot_img = None
+
+st.subheader("📸 استخراج لقطة شاشة من X (تويتر)")
+
+# 🔴🔴🔴 ضع مفتاح الـ ApiFlash الخاص بك هنا 🔴🔴🔴
+APIFLASH_KEY = "ضع_مفتاحك_هنا" 
+
+with st.expander("اضغط هنا لفتح أداة الالتقاط اليدوية", expanded=False):
+    col_input, col_btn = st.columns([4, 1])
+    with col_input:
+        tweet_url = st.text_input("رابط التغريدة", placeholder="https://x.com/...", label_visibility="collapsed")
+    with col_btn:
+        capture_btn = st.button("التقط الصورة", use_container_width=True)
+        
+    if capture_btn and tweet_url:
+        if APIFLASH_KEY == "ضع_مفتاحك_هنا":
+            st.error("⚠️ الرجاء وضع مفتاح ApiFlash في الكود أولاً.")
+        else:
+            with st.spinner("جاري التقاط الصورة من السيرفر... ⏳"):
+                try:
+                    encoded_url = urllib.parse.quote(tweet_url)
+                    api_url = f"https://api.apiflash.com/v1/urltoimage?access_key={APIFLASH_KEY}&url={encoded_url}&width=800&height=600&format=jpeg&response_type=image"
+                    resp = requests.get(api_url)
+                    if resp.status_code == 200:
+                        st.session_state.snapshot_img = resp.content
+                    else:
+                        st.error("❌ فشل الالتقاط. تأكد من الرابط.")
+                except Exception as e:
+                    st.error(f"حدث خطأ: {e}")
+                    
+    # عرض الصورة المحفوظة مع زر تحميل
+    if st.session_state.snapshot_img:
+        st.success("✅ تم الالتقاط بنجاح!")
+        st.image(st.session_state.snapshot_img, use_container_width=True)
+        
+        col_down, col_close = st.columns(2)
+        with col_down:
+            st.download_button(
+                label="💾 تحميل لقطة الشاشة",
+                data=st.session_state.snapshot_img,
+                file_name=f"tweet_snap_{int(time.time())}.jpg",
+                mime="image/jpeg",
+                use_container_width=True
+            )
+        with col_close:
+            if st.button("❌ إغلاق الصورة", use_container_width=True):
+                st.session_state.snapshot_img = None
+                st.rerun()
+
+st.markdown("<hr style='margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
+# ==========================================
+
 
 # --- عرض الأخبار ---
 for item in st.session_state.news_items:
