@@ -266,7 +266,11 @@ else:
                     file_name=f"tweet_hq_{int(time.time())}.png",
                     mime="image/png",
                     use_container_width=True
-                
+                )
+            with col_close:
+                if st.button("❌ إغلاق الصورة", use_container_width=True):
+                    st.session_state.snapshot_img = None
+                    st.rerun()
 
 st.markdown("<hr style='margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
 # ==========================================
