@@ -174,12 +174,6 @@ st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: #444
 # ==========================================
 # --- أداة التقاط التغريدات (ApiFlash) ---
 # ==========================================
-import re # تأكد من إضافة هذه المكتبة في أعلى الملف إذا لم تكن موجودة
-
-if "snapshot_img" not in st.session_state:
-    st.session_state.snapshot_img = None
-
-st.subheader("📸 استخراج لقطة شاشة نقية من X (تويتر)")
 
 # 🔴🔴🔴 ضع مفتاح الـ ApiFlash الخاص بك هنا 🔴🔴🔴
 # ==========================================
@@ -192,7 +186,7 @@ import requests
 if "snapshot_img" not in st.session_state:
     st.session_state.snapshot_img = None
 
-st.subheader("📸 استخراج لقطة شاشة نقية (نص كامل وتصميم عريض)")
+st.subheader("📸 استخراج صورة")
 
 # 🔴🔴🔴 ضع مفتاحك الحقيقي هنا 🔴🔴🔴
 APIFLASH_KEY = "85706f41977042d3b642677a65d0d81c" 
