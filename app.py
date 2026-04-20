@@ -14,6 +14,13 @@ cookies = EncryptedCookieManager(password="L6V299S8B1N0M3X4Z5Q6W7E8")
 if not cookies.ready():
     st.stop()
 
+# إنشاء أو قراءة رقم تعريفي ثابت للجهاز (لمنع مشكلة الريفرش)
+device_id = cookies.get("device_id")
+if not device_id:
+    device_id = str(uuid.uuid4())
+    cookies["device_id"] = device_id
+    cookies.save()
+
 # --- إعدادات الصفحة ---
 st.set_page_config(page_title="قارئ الأخبار الاحترافي", layout="wide", page_icon="📰")
 
@@ -36,65 +43,58 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- دالة لتشغيل صوت التنبيه ---
 def play_notification_sound():
     sound_url = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
     html_str = f'<audio autoplay style="display:none;"><source src="{sound_url}" type="audio/mp3"></audio>'
     st.components.v1.html(html_str, height=0)
 
 # --- نظام تسجيل الدخول المتعدد (مع منع الدخول المزدوج) ---
-
-# إنشاء قاموس مركزي على السيرفر لتتبع من هو متصل الآن
-# نستخدم st.cache_resource لضمان بقاء هذا القاموس مشتركاً بين كل الزوار
 @st.cache_resource
 def get_active_sessions():
-    return {} # {username: session_id}
+    return {} # القاموس المركزي لحفظ الأجهزة المتصلة
 
 active_sessions = get_active_sessions()
 
-# توليد معرف فريد (ID) لهذه المتصفح/الجلسة المحددة
-if "my_session_id" not in st.session_state:
-    st.session_state.my_session_id = str(uuid.uuid4())
-
-# استرجاع حالة الدخول واسم المستخدم من الكوكيز
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = cookies.get("is_logged_in") == "true"
 if "current_username" not in st.session_state:
     st.session_state.current_username = cookies.get("current_username")
 
-# حماية إضافية: إذا كان مسجلاً في الكوكيز، تأكد أن السيرفر ما زال يعترف بجلسة هذا المتصفح
+# حماية إضافية: إذا دخل شخص آخر وطردك، سيتم تسجيل خروجك تلقائياً
 if st.session_state.logged_in and st.session_state.current_username:
     u = st.session_state.current_username
-    my_id = st.session_state.my_session_id
-    # إذا كان الحساب مسجلاً على السيرفر برقم تعريف (ID) مختلف، قم بطرد هذا المتصفح
-    if active_sessions.get(u) != my_id:
+    if active_sessions.get(u) != device_id:
         st.session_state.logged_in = False
         cookies["is_logged_in"] = "false"
         cookies["current_username"] = ""
         cookies.save()
 
-
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>🔒 دخول النظام</h1>", unsafe_allow_html=True)
     
     valid_users = {
-        "mwj1": "@@@", "mwj2": "@@@", "mwj3": "@@@", "mwj4": "@@@", "mwj5": "@@@"
+        "mjw1": "@@@", "mjw2": "@@@", "mjw3": "@@@", "mjw4": "@@@", "mjw5": "@@@"
     }
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         u = st.text_input("المستخدم")
         p = st.text_input("كلمة المرور", type="password")
+        
+        # زر إجباري يظهر فقط إذا كان الحساب مستخدماً حالياً
+        force_login = False
+        if u in active_sessions and active_sessions[u] != device_id:
+            st.warning(f"⚠️ الحساب '{u}' مستخدم حالياً من جهاز آخر.")
+            force_login = st.checkbox("إنهاء الجلسة الأخرى والدخول إجبارياً")
+            
         if st.button("دخول", use_container_width=True):
             if u in valid_users and valid_users[u] == p:
-                # التحقق مما إذا كان الحساب مستخدماً حالياً من قبل شخص آخر
-                if u in active_sessions and active_sessions[u] != st.session_state.my_session_id:
-                    st.error(f"❌ عذراً، الحساب '{u}' مستخدم حالياً من جهاز آخر!")
+                if u in active_sessions and active_sessions[u] != device_id and not force_login:
+                    st.error("❌ لا يمكنك الدخول. الرجاء تحديد مربع 'إنهاء الجلسة الأخرى' لطرد الجهاز القديم.")
                 else:
-                    # تسجيل الدخول بنجاح وحجز الحساب على السيرفر
                     st.session_state.logged_in = True
                     st.session_state.current_username = u
-                    active_sessions[u] = st.session_state.my_session_id
+                    active_sessions[u] = device_id # تسجيل هذا الجهاز كالجهاز الفعال
                     
                     cookies["is_logged_in"] = "true"
                     cookies["current_username"] = u
@@ -150,9 +150,8 @@ fetch_news()
 col_logout, col_space, col_slider = st.columns([1, 2, 2])
 with col_logout:
     if st.button("تسجيل الخروج 🚪", use_container_width=True):
-        # تحرير الحساب من السيرفر ليتمكن الآخرون من استخدامه
         u = st.session_state.current_username
-        if u in active_sessions:
+        if u in active_sessions and active_sessions[u] == device_id:
             del active_sessions[u]
             
         cookies["is_logged_in"] = "false"
