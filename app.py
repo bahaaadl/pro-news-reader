@@ -185,7 +185,33 @@ st.subheader("📸 استخراج لقطة شاشة نقية من X (تويتر)
 # ==========================================
 # --- أداة التقاط التغريدات (النسخة الخارقة - تدعم التغريدات الطويلة) ---
 # ==========================================
-if capture_btn and tweet_url:
+# ==========================================
+# --- أداة التقاط التغريدات (النسخة الخارقة - تدعم التغريدات الطويلة) ---
+# ==========================================
+import urllib.parse
+import time
+import requests
+
+if "snapshot_img" not in st.session_state:
+    st.session_state.snapshot_img = None
+
+st.subheader("📸 استخراج لقطة شاشة نقية (نص كامل)")
+
+# 🔴🔴🔴 لا تنسَ وضع مفتاحك هنا 🔴🔴🔴
+APIFLASH_KEY = "ضع_مفتاحك_هنا" 
+
+with st.expander("اضغط هنا لفتح أداة الالتقاط اليدوية", expanded=False):
+    col_input, col_btn = st.columns([4, 1])
+    
+    with col_input:
+        tweet_url = st.text_input("رابط التغريدة", placeholder="https://x.com/...", label_visibility="collapsed")
+        
+    with col_btn:
+        # 🟢 هذا هو السطر الذي كان مفقوداً أو به خطأ في ملفك (تعريف الزر)
+        capture_btn = st.button("التقط الصورة", use_container_width=True)
+        
+    # يجب أن يكون هذا السطر على نفس محاذاة with col_btn:
+    if capture_btn and tweet_url:
         if APIFLASH_KEY == "85706f41977042d3b642677a65d0d81c":
             st.error("⚠️ الرجاء وضع مفتاح ApiFlash في الكود أولاً.")
         else:
@@ -219,6 +245,27 @@ if capture_btn and tweet_url:
                         st.error(f"❌ فشل الالتقاط. كود الخطأ: {resp.status_code}")
                 except Exception as e:
                     st.error(f"حدث خطأ: {e}")
+                    
+    if st.session_state.snapshot_img:
+        st.success("✅ تم الالتقاط بنجاح (مع فتح النص الطويل كاملًا)!")
+        st.image(st.session_state.snapshot_img, width=600)
+        
+        col_down, col_close = st.columns(2)
+        with col_down:
+            st.download_button(
+                label="💾 تحميل لقطة الشاشة",
+                data=st.session_state.snapshot_img,
+                file_name=f"tweet_full_{int(time.time())}.png",
+                mime="image/png",
+                use_container_width=True
+            )
+        with col_close:
+            if st.button("❌ إغلاق الصورة", use_container_width=True):
+                st.session_state.snapshot_img = None
+                st.rerun()
+
+st.markdown("<hr style='margin-bottom: 20px; border-color: #444;'>", unsafe_allow_html=True)
+# ==========================================
 # ==========================================
 # ==========================================
 # ==========================================
