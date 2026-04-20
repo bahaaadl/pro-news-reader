@@ -174,7 +174,7 @@ if "snapshot_img" not in st.session_state:
 st.subheader("📸 استخراج لقطة شاشة من X (تويتر)")
 
 # 🔴🔴🔴 ضع مفتاح الـ ApiFlash الخاص بك هنا 🔴🔴🔴
-APIFLASH_KEY = "ضع_مفتاحك_هنا" 
+APIFLASH_KEY = "f74b3632ea224e54b482102774ae2cb2" 
 
 with st.expander("اضغط هنا لفتح أداة الالتقاط اليدوية", expanded=False):
     col_input, col_btn = st.columns([4, 1])
