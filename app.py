@@ -185,13 +185,17 @@ st.subheader("📸 استخراج لقطة شاشة نقية من X (تويتر)
 # ==========================================
 # --- أداة التقاط التغريدات (النسخة الخارقة - تدعم التغريدات الطويلة) ---
 # ==========================================
-# الكود الذكي لضغط زر "عرض المزيد" وإخفاء البنرات
+if capture_btn and tweet_url:
+        if APIFLASH_KEY == "85706f41977042d3b642677a65d0d81c":
+            st.error("⚠️ الرجاء وضع مفتاح ApiFlash في الكود أولاً.")
+        else:
+            with st.spinner("جاري فتح التغريدة، الضغط على 'عرض المزيد'، والتقاط الصورة... ⏳"):
+                try:
+                    encoded_url = urllib.parse.quote(tweet_url)
+                    
+                    # الكود الذكي لضغط زر "عرض المزيد" وإخفاء البنرات
                     js_code = """
-                    // 1. مسح نافذة تسجيل الدخول والبنرات السفلية
                     const layers = document.getElementById('layers'); if(layers) layers.remove();
-                    const bottomBanner = document.querySelector('[data-testid="bottom-banner"]'); if(bottomBanner) bottomBanner.remove();
-
-                    // 2. الانتظار قليلاً ثم الضغط على زر عرض المزيد
                     setTimeout(() => {
                         const els = document.querySelectorAll('span, div, a');
                         for (let e of els) {
@@ -203,6 +207,18 @@ st.subheader("📸 استخراج لقطة شاشة نقية من X (تويتر)
                     }, 1000);
                     """
                     encoded_js = urllib.parse.quote(js_code)
+                    
+                    encoded_element = urllib.parse.quote('article[data-testid="tweet"]')
+                    
+                    api_url = f"https://api.apiflash.com/v1/urltoimage?access_key={APIFLASH_KEY}&url={encoded_url}&format=png&delay=5&width=600&scale_factor=2&js={encoded_js}&element={encoded_element}&response_type=image"
+                    
+                    resp = requests.get(api_url)
+                    if resp.status_code == 200:
+                        st.session_state.snapshot_img = resp.content
+                    else:
+                        st.error(f"❌ فشل الالتقاط. كود الخطأ: {resp.status_code}")
+                except Exception as e:
+                    st.error(f"حدث خطأ: {e}")
 # ==========================================
 # ==========================================
 # ==========================================
