@@ -185,22 +185,24 @@ st.subheader("📸 استخراج لقطة شاشة نقية من X (تويتر)
 # ==========================================
 # --- أداة التقاط التغريدات (النسخة الخارقة - تدعم التغريدات الطويلة) ---
 # ==========================================
-// 1. مسح نافذة تسجيل الدخول والبنرات السفلية
-const layers = document.getElementById('layers');
-if(layers) layers.remove();
-const bottomBanner = document.querySelector('[data-testid="bottom-banner"]');
-if(bottomBanner) bottomBanner.remove();
+# الكود الذكي لضغط زر "عرض المزيد" وإخفاء البنرات
+                    js_code = """
+                    // 1. مسح نافذة تسجيل الدخول والبنرات السفلية
+                    const layers = document.getElementById('layers'); if(layers) layers.remove();
+                    const bottomBanner = document.querySelector('[data-testid="bottom-banner"]'); if(bottomBanner) bottomBanner.remove();
 
-// 2. الانتظار قليلاً ثم الضغط على زر "عرض المزيد"
-setTimeout(() => {
-    const els = document.querySelectorAll('span, div, a');
-    for (let e of els) {
-        if (e.innerText && (e.innerText.includes('عرض المزيد') || e.innerText.includes('Show more') || e.innerText.includes('اقرأ المزيد'))) {
-            e.click();
-            break;
-        }
-    }
-}, 1000);
+                    // 2. الانتظار قليلاً ثم الضغط على زر عرض المزيد
+                    setTimeout(() => {
+                        const els = document.querySelectorAll('span, div, a');
+                        for (let e of els) {
+                            if (e.innerText && (e.innerText.includes('عرض المزيد') || e.innerText.includes('Show more') || e.innerText.includes('اقرأ المزيد'))) {
+                                e.click();
+                                break;
+                            }
+                        }
+                    }, 1000);
+                    """
+                    encoded_js = urllib.parse.quote(js_code)
 # ==========================================
 # ==========================================
 # ==========================================
