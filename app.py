@@ -31,19 +31,52 @@ st.set_page_config(page_title="قارئ الأخبار الاحترافي", layo
 # --- CSS لإخفاء شريط الإعدادات وتحسين التصميم ---
 st.markdown("""
 <style>
+/* إخفاء قوائم ستريمليت والشريط الأبيض */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
-.stDeployButton {display:none;}
+.stAppDeployButton {display:none;}
+[data-testid="stStatusWidget"] {display:none;}
+
+/* إعدادات الخط */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
 * { font-family: 'Tajawal', sans-serif; }
-.news-card { display: flex; flex-direction: row; direction: rtl; background-color: #1E1E1E; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 2px solid #444444; }
+
+/* 💻 تصميم البطاقات الأساسي (لشاشات الكمبيوتر) */
+.news-card { 
+    display: flex; 
+    flex-direction: row; 
+    direction: rtl; 
+    background-color: #1E1E1E; 
+    border-radius: 12px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+    border: 2px solid #444444; 
+}
 .news-card.new-item { animation: pulse-border 2s infinite; }
 @keyframes pulse-border { 0% { border-color: #FFDF00; } 50% { border-color: #B8860B; } 100% { border-color: #FFDF00; } }
 .news-content { flex: 1; padding-left: 20px; text-align: right; }
 .news-image-container { width: 250px; height: 250px; flex-shrink: 0; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
 .news-image-container img { width: 100%; height: 100%; object-fit: cover; }
 .read-more-btn { background-color: #1f77b4; color: white !important; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px; display: inline-block; }
+
+/* 📱 التوافق التلقائي مع شاشات الموبايل (التعديل السحري) */
+@media (max-width: 768px) {
+    .news-card {
+        flex-direction: column; /* ترتيب النص والصورة فوق بعضهما */
+        padding: 15px;
+    }
+    .news-content {
+        padding-left: 0; /* إزالة الفراغ الجانبي */
+        margin-bottom: 15px; /* إضافة مسافة بين النص والصورة */
+    }
+    .news-image-container {
+        width: 100%; /* جعل الصورة تأخذ عرض شاشة الموبايل بالكامل */
+        height: auto;
+        min-height: 200px;
+        max-height: 300px;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
