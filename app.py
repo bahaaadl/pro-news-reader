@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components # 👈 المكتبة السحرية الجديدة
+import streamlit.components.v1 as components 
 import feedparser
 import requests
 import re
@@ -59,7 +59,7 @@ def fetch_news():
             title = re.sub('<.*?>', '', entry.title).strip()
             desc = re.sub('<.*?>', '', entry.get('description', '')).strip()
             
-            # تجهيز النص المنسوخ (العنوان + الوصف)
+            # تجهيز النص المنسوخ
             full_text = f"{title}\n\n{desc}"
 
             items.append({
@@ -80,9 +80,19 @@ with col_label: st.markdown("<div class='align-font-label'><p style='font-weight
 with col_slider: f_size = st.select_slider("slider", options=range(16, 41), value=22, label_visibility="collapsed")
 
 st.success("✅ أهلاً بك في غرفة الأخبار.")
+
+# --- 5. أداة استخراج الصور (تمت إعادتها) 📸 ---
+with st.expander("📸 استخراج صورة من منصة X"):
+    tweet_url = st.text_input("أدخل رابط التغريدة هنا:")
+    if st.button("التقاط الصورة"):
+        if tweet_url:
+            with st.spinner("جاري الالتقاط... ⏳"):
+                api_url = f"https://api.apiflash.com/v1/urltoimage?access_key=85706f41977042d3b642677a65d0d81c&url={urllib.parse.quote(tweet_url)}&element={urllib.parse.quote('article[data-testid=\"tweet\"]')}&delay=5"
+                st.image(api_url, caption="تم الالتقاط بنجاح")
+
 st.markdown("---")
 
-# --- 5. عرض الأخبار ---
+# --- 6. عرض الأخبار ---
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
@@ -101,7 +111,7 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
-            # --- كود الأزرار السحري (مستقل عن قيود Streamlit) ---
+            # --- كود الأزرار السحري ---
             safe_text_js = json.dumps(item['copy_text'])
             
             html_btns = f"""
@@ -126,7 +136,6 @@ for item in st.session_state.news_items:
                 <script>
                     function copyToClipboard(btn) {{
                         const text = {safe_text_js};
-                        // استخدام الطريقة الكلاسيكية الأقوى والتي لا يمنعها المتصفح
                         const tempInput = document.createElement("textarea");
                         tempInput.value = text;
                         document.body.appendChild(tempInput);
@@ -153,8 +162,6 @@ for item in st.session_state.news_items:
             </body>
             </html>
             """
-            
-            # دمج الكود باستخدام components.html لمنحه حرية مطلقة
             components.html(html_btns, height=60)
         
         st.markdown("<hr style='border: 0.5px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
