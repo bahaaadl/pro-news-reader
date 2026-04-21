@@ -1,16 +1,18 @@
 import streamlit as st
+import streamlit.components.v1 as components # 👈 المكتبة السحرية الجديدة
 import feedparser
 import requests
 import re
 import urllib.parse
 import time
 import calendar
+import json
 from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
 
-# --- 2. التصميم (CSS) فقط بدون كود JS خارجي ---
+# --- 2. التصميم الأساسي (CSS) ---
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -33,28 +35,6 @@ st.markdown("""
         background-color: #1E1E1E; border-radius: 15px; 
         padding: 20px; margin-bottom: 25px; border: 1px solid #333;
     }
-    
-    /* تنسيق الأزرار بجانب بعضها */
-    .btn-container {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-    }
-
-    .read-more-btn { 
-        background-color: #1f77b4; color: white !important; 
-        padding: 8px 15px; text-decoration: none; border-radius: 8px; 
-        font-weight: bold; font-size: 14px; display: inline-block;
-    }
-
-    .copy-btn {
-        background-color: #2d2d2d; color: #4FA3E3 !important;
-        padding: 8px 15px; border-radius: 8px; cursor: pointer;
-        border: 1px solid #4FA3E3; font-weight: bold; font-size: 14px;
-        display: flex; align-items: center; gap: 5px;
-    }
-    
-    .copy-btn:hover { background-color: #4FA3E3; color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -78,6 +58,8 @@ def fetch_news():
             
             title = re.sub('<.*?>', '', entry.title).strip()
             desc = re.sub('<.*?>', '', entry.get('description', '')).strip()
+            
+            # تجهيز النص المنسوخ (العنوان + الوصف)
             full_text = f"{title}\n\n{desc}"
 
             items.append({
@@ -104,9 +86,6 @@ st.markdown("---")
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
-    # تحويل النص بالكامل إلى كود آمن جداً للـ JavaScript
-    encoded_text = urllib.parse.quote(item['copy_text'])
-    
     with st.container():
         col_text, col_img = st.columns([2, 1])
         
@@ -122,34 +101,61 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
-            # زر النسخ مع كود الجافاسكريبت المدمج فيه مباشرة (يحل مشكلة Streamlit)
+            # --- كود الأزرار السحري (مستقل عن قيود Streamlit) ---
+            safe_text_js = json.dumps(item['copy_text'])
+            
             html_btns = f"""
-            <div class="btn-container">
-                <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
-                <div class="copy-btn" onclick="
-                    var btn = this;
-                    var txt = decodeURIComponent('{encoded_text}');
-                    if (navigator.clipboard) {{
-                        navigator.clipboard.writeText(txt).then(() => {{
-                            btn.innerHTML = '✅ تم النسخ';
-                            btn.style.borderColor = '#28a745';
-                            setTimeout(() => {{ btn.innerHTML = 'نسخ النص 📋'; btn.style.borderColor = '#4FA3E3'; }}, 2000);
-                        }});
-                    }} else {{
-                        var el = document.createElement('textarea');
-                        el.value = txt;
-                        document.body.appendChild(el);
-                        el.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(el);
-                        btn.innerHTML = '✅ تم النسخ';
-                        btn.style.borderColor = '#28a745';
-                        setTimeout(() => {{ btn.innerHTML = 'نسخ النص 📋'; btn.style.borderColor = '#4FA3E3'; }}, 2000);
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700&display=swap" rel="stylesheet">
+                <style>
+                    body {{ margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; background-color: #1E1E1E; }}
+                    .btn-container {{ display: flex; gap: 10px; align-items: center; padding-top: 10px; }}
+                    .read-more-btn {{ background-color: #1f77b4; color: white; padding: 8px 15px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.3s; }}
+                    .read-more-btn:hover {{ background-color: #155a8a; }}
+                    .copy-btn {{ background-color: #2d2d2d; color: #4FA3E3; padding: 8px 15px; border: 1px solid #4FA3E3; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; font-family: 'Tajawal', sans-serif; transition: 0.3s; }}
+                    .copy-btn:hover {{ background-color: #4FA3E3; color: white; }}
+                </style>
+            </head>
+            <body>
+                <div class="btn-container">
+                    <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
+                    <button class="copy-btn" onclick="copyToClipboard(this)">نسخ النص 📋</button>
+                </div>
+                <script>
+                    function copyToClipboard(btn) {{
+                        const text = {safe_text_js};
+                        // استخدام الطريقة الكلاسيكية الأقوى والتي لا يمنعها المتصفح
+                        const tempInput = document.createElement("textarea");
+                        tempInput.value = text;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        try {{
+                            document.execCommand("copy");
+                            const oldText = btn.innerHTML;
+                            btn.innerHTML = "✅ تم النسخ بنجاح";
+                            btn.style.backgroundColor = "#28a745";
+                            btn.style.borderColor = "#28a745";
+                            btn.style.color = "white";
+                            setTimeout(() => {{
+                                btn.innerHTML = oldText;
+                                btn.style.backgroundColor = "#2d2d2d";
+                                btn.style.borderColor = "#4FA3E3";
+                                btn.style.color = "#4FA3E3";
+                            }}, 2000);
+                        }} catch(e) {{
+                            alert("فشل النسخ");
+                        }}
+                        document.body.removeChild(tempInput);
                     }}
-                ">نسخ النص 📋</div>
-            </div>
+                </script>
+            </body>
+            </html>
             """
-            st.markdown(html_btns, unsafe_allow_html=True)
+            
+            # دمج الكود باستخدام components.html لمنحه حرية مطلقة
+            components.html(html_btns, height=60)
         
         st.markdown("<hr style='border: 0.5px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
 
