@@ -74,12 +74,23 @@ def fetch_news():
 fetch_news()
 
 # --- 4. الواجهة العلوية ---
-col_logo, _, col_label, col_slider = st.columns([3, 0.2, 0.4, 1.4], vertical_alignment="center")
-with col_logo: st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
-with col_label: st.markdown("<div class='align-font-label'><p style='font-weight:bold; margin:0;'>حجم الخط</p></div>", unsafe_allow_html=True)
-with col_slider: f_size = st.select_slider("slider", options=range(16, 41), value=22, label_visibility="collapsed")
+# --- 4. الواجهة العلوية ---
+# تم تعديل نسب الأعمدة ليكون مربع الخط صغيراً وأنيقاً مثل الوورد (0.6)
+col_logo, _, col_label, col_font_box = st.columns([3, 0.5, 0.4, 0.6], vertical_alignment="center")
+
+with col_logo: 
+    st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
+
+with col_label: 
+    # محاذاة دقيقة لكلمة "حجم الخط" لتكون بمستوى المربع تماماً
+    st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-top: 2px;'><p style='font-weight:bold; margin:0; font-size:16px;'>حجم الخط</p></div>", unsafe_allow_html=True)
+
+with col_font_box: 
+    # قائمة منسدلة تشبه الوورد تماماً (من 20 إلى 70)، وتبدأ افتراضياً من رقم 22
+    f_size = st.selectbox("حجم الخط", options=range(20, 71), index=2, label_visibility="collapsed")
 
 st.success("✅ أهلاً بك في غرفة الأخبار.")
+st.markdown("---")
 
 # --- 5. أداة استخراج الصور (تمت إعادتها) 📸 ---
 with st.expander("📸 استخراج صورة من منصة X"):
