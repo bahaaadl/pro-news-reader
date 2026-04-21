@@ -5,13 +5,13 @@ import re
 import urllib.parse
 import time
 import calendar
-import json # أضفنا هذه المكتبة لضمان سلامة النصوص
+import html  # 👈 هذا هو السطر الذي كان مفقوداً!
 from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
 
-# --- 2. التصميم و JavaScript ---
+# --- 2. التصميم (CSS + JS للنسخ) ---
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -24,6 +24,7 @@ st.markdown("""
         text-align: right;
     }
 
+    /* استقامة الهيدر */
     .align-font-label {
         display: flex; align-items: center; justify-content: flex-end;
         height: 85px; margin-top: -15px;
@@ -34,7 +35,12 @@ st.markdown("""
         padding: 20px; margin-bottom: 25px; border: 1px solid #333;
     }
     
-    .btn-container { display: flex; gap: 10px; margin-top: 15px; }
+    /* تنسيق الأزرار بجانب بعضها */
+    .btn-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
 
     .read-more-btn { 
         background-color: #1f77b4; color: white !important; 
@@ -54,17 +60,14 @@ st.markdown("""
 
 <script>
 function copyToClipboard(btn) {
-    // جلب النص من السمة المخفية في الزر نفسه
     const text = btn.getAttribute('data-text');
     const originalHTML = btn.innerHTML;
     
-    // محاولة النسخ باستخدام API الحديث
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             showSuccess(btn, originalHTML);
         });
     } else {
-        // طريقة احتياطية للمتصفحات القديمة أو غير المؤمنة بـ SSL
         const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -110,7 +113,6 @@ def fetch_news():
             img = next((l.href for l in entry.get('links', []) if 'image' in l.type), None)
             if not img and 'media_content' in entry: img = entry.media_content[0].get('url')
             
-            # تنظيف النصوص
             title = re.sub('<.*?>', '', entry.title).strip()
             desc = re.sub('<.*?>', '', entry.get('description', '')).strip()
             full_text = f"{title}\n\n{desc}"
@@ -118,7 +120,7 @@ def fetch_news():
             items.append({
                 "title": title, "link": entry.link, "desc": desc,
                 "date": dt_str, "img": img, 
-                "id": "".join(filter(str.isalnum, entry.link[-10:])), # ID نظيف جداً
+                "id": "".join(filter(str.isalnum, entry.link[-10:])),
                 "copy_text": full_text
             })
         st.session_state.news_items = items
@@ -137,9 +139,9 @@ st.markdown("---")
 
 # --- 5. عرض الأخبار ---
 for item in st.session_state.news_items:
-    img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250"
+    img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
-    # تحويل النص إلى JSON آمن لتجنب كسر JavaScript
+    # تحويل النص إلى نص آمن لتجنب كسر JavaScript
     safe_text = html.escape(item['copy_text'])
     
     with st.container():
@@ -157,7 +159,6 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
-            # تعديل الأزرار: نمرر "this" للدالة ونضع النص في data-text
             html_btns = f"""
             <div class="btn-container">
                 <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
