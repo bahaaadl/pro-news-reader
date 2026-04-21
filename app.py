@@ -33,6 +33,12 @@ import streamlit as st
 # (استدعاء باقي مكتباتك هنا مثل pandas أو requests)
 
 # 1. كود التصميم وإخفاء القوائم (الكود الذي أرسلته لي الآن)
+import streamlit as st
+
+# --- 1. إعدادات الصفحة (يجب أن يكون أول أمر في ستريمليت) ---
+st.set_page_config(page_title="موجة نيوز", layout="wide")
+
+# --- 2. كود التصميم والتنسيق (CSS) الذي أرسلته ---
 st.markdown("""
 <style>
 /* إخفاء قوائم ستريمليت والشريط الأبيض */
@@ -64,7 +70,7 @@ footer {visibility: hidden;}
 .news-image-container img { width: 100%; height: 100%; object-fit: cover; }
 .read-more-btn { background-color: #1f77b4; color: white !important; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px; display: inline-block; }
 
-/* 📱 التوافق التلقائي مع شاشات الموبايل (التعديل السحري) */
+/* 📱 التوافق التلقائي مع شاشات الموبايل */
 @media (max-width: 768px) {
     .news-card {
         flex-direction: column; 
@@ -83,6 +89,25 @@ footer {visibility: hidden;}
 }
 </style>
 """, unsafe_allow_html=True)
+
+# --- 3. واجهة الموقع بعد تسجيل الدخول عبر Clerk ---
+st.markdown("<h1 style='text-align: center; color: #1f77b4;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
+st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
+
+# --- 4. هنا تضع كود جلب الأخبار (RSS / Scraper) ---
+# مثال بسيط لكيفية استخدام كلاس البطاقة في كودك:
+# st.markdown('''
+# <div class="news-card">
+#     <div class="news-content">
+#         <h3>عنوان الخبر التجريبي</h3>
+#         <p>هذا النص يظهر بعد تسجيل الدخول عبر نظام Clerk بنجاح...</p>
+#         <a href="#" class="read-more-btn">اقرأ المزيد</a>
+#     </div>
+#     <div class="news-image-container">
+#         <img src="https://via.placeholder.com/250" alt="news">
+#     </div>
+# </div>
+# ''', unsafe_allow_html=True)
 
 # ==========================================
 # 2. كود جلب الأخبار وعرضها
