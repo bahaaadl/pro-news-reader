@@ -83,52 +83,17 @@ def fetch_news():
 fetch_news()
 
 # --- 4. الواجهة العلوية (العنوان + حجم الخط الموسط) ---
-# --- 4. الواجهة العلوية (استقامة دقيقة للخط والدائرة) ---
-col_logo, col_font_label, col_slider = st.columns([3, 0.6, 1.4], vertical_alignment="center")
+col_logo, col_font = st.columns([3, 1])
 
 with col_logo:
-    st.markdown("<h1 style='color: #4FA3E3; margin:0; padding:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
-with col_font_label:
-    # أضفنا padding-top: 15px لإنزال الكلمة لتصبح بمستوى الدائرة تماماً
-    st.markdown("""
-        <div style='display: flex; align-items: center; height: 100%; padding-top: 18px;'>
-            <p style='margin:0; font-weight:bold; white-space:nowrap; font-size:16px;'>حجم الخط</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col_slider:
-    f_size = st.select_slider(
-        "font_slider", 
-        options=range(16, 41), 
-        value=22, 
-        label_visibility="collapsed"
-    )
+with col_font:
+    # وضع السلايدر في حاوية لضمان التوسيط البصري
+    f_size = st.select_slider("حجم الخط", options=range(16, 41), value=22)
 
 st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
-c# --- 4. الواجهة العلوية (استقامة دقيقة للخط والدائرة) ---
-col_logo, col_font_label, col_slider = st.columns([3, 0.6, 1.4], vertical_alignment="center")
 
-with col_logo:
-    st.markdown("<h1 style='color: #4FA3E3; margin:0; padding:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
-
-with col_font_label:
-    # أضفنا padding-top: 15px لإنزال الكلمة لتصبح بمستوى الدائرة تماماً
-    st.markdown("""
-        <div style='display: flex; align-items: center; height: 100%; padding-top: 18px;'>
-            <p style='margin:0; font-weight:bold; white-space:nowrap; font-size:16px;'>حجم الخط</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col_slider:
-    f_size = st.select_slider(
-        "font_slider", 
-        options=range(16, 41), 
-        value=22, 
-        label_visibility="collapsed"
-    )
-
-st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
 # --- 5. أداة استخراج الصور ---
 with st.expander("📸 استخراج صورة من منصة X"):
     tweet_url = st.text_input("رابط التغريدة")
