@@ -4,6 +4,8 @@ import requests
 import re
 import urllib.parse
 import time
+import calendar
+from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
@@ -14,21 +16,11 @@ st.markdown("""
     #MainMenu, header, footer {visibility: hidden;}
     .stAppDeployButton {display:none;}
     
-    /* ضبط الخط والاتجاه العربي */
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
     html, body, [data-testid="stAppViewContainer"], .stMarkdown, p, h1, h2, h3, div {
         font-family: 'Tajawal', sans-serif;
         direction: rtl;
         text-align: right;
-    }
-
-    /* تنسيق حاوية حجم الخط لضمان التوسيط */
-    .font-slider-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        padding-top: 10px;
     }
 
     /* تصميم البطاقة */
@@ -45,19 +37,10 @@ st.markdown("""
         padding: 8px 20px; text-decoration: none; border-radius: 8px; 
         display: inline-block; font-weight: bold; margin-top: 10px;
     }
-
-    /* تنسيق أزرار ستريمليت لتناسب التصميم */
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        background-color: #262730;
-        color: white;
-        border: 1px solid #444;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. جلب الأخبار ---
+# --- 3. جلب الأخبار بتوقيت بغداد (GMT+3) ---
 if "news_items" not in st.session_state:
     st.session_state.news_items = []
 
@@ -67,24 +50,21 @@ def fetch_news():
         feed = feedparser.parse(url)
         items = []
         for entry in feed.entries[:30]:
-            # --- تحويل الوقت إلى توقيت بغداد (GMT+3) ---
+            # ضبط الوقت لتوقيت العراق المحلي
             pub = entry.get('published_parsed')
             dt_str = ""
             if pub:
-                # تحويل من توقيت جرينتش إلى توقيت محلي (+3 ساعات)
                 dt = datetime.fromtimestamp(calendar.timegm(pub), tz=timezone.utc).astimezone(timezone(timedelta(hours=3)))
                 dt_str = dt.strftime('%I:%M %p | %Y/%m/%d')
             
-            # جلب الصورة
             img = next((l.href for l in entry.get('links', []) if 'image' in l.type), None)
-            if not img and 'media_content' in entry: 
-                img = entry.media_content[0].get('url')
+            if not img and 'media_content' in entry: img = entry.media_content[0].get('url')
             
             items.append({
                 "title": re.sub('<.*?>', '', entry.title),
                 "link": entry.link,
                 "desc": re.sub('<.*?>', '', entry.get('description', '')),
-                "date": dt_str, # الوقت المحلي الجديد
+                "date": dt_str,
                 "img": img,
                 "id": entry.get('id', entry.link)
             })
@@ -94,28 +74,18 @@ def fetch_news():
 
 fetch_news()
 
-# --- 4. الواجهة العلوية (العنوان + حجم الخط الموسط) ---
-# --- 4. الواجهة العلوية (استقامة دقيقة للخط والدائرة) ---
+# --- 4. الواجهة العلوية (الاستقامة المثالية) ---
 col_logo, col_font_label, col_slider = st.columns([3, 0.6, 1.4], vertical_alignment="center")
 
 with col_logo:
     st.markdown("<h1 style='color: #4FA3E3; margin:0; padding:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
 with col_font_label:
-    # أضفنا padding-top: 15px لإنزال الكلمة لتصبح بمستوى الدائرة تماماً
-    st.markdown("""
-        <div style='display: flex; align-items: center; height: 100%; padding-top: 18px;'>
-            <p style='margin:0; font-weight:bold; white-space:nowrap; font-size:16px;'>حجم الخط</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # إزاحة بسيطة للأسفل (18px) ليصبح النص بمستوى الدائرة تماماً
+    st.markdown("<div style='padding-top: 18px;'><p style='margin:0; font-weight:bold; white-space:nowrap;'>حجم الخط</p></div>", unsafe_allow_html=True)
 
 with col_slider:
-    f_size = st.select_slider(
-        "font_slider", 
-        options=range(16, 41), 
-        value=22, 
-        label_visibility="collapsed"
-    )
+    f_size = st.select_slider("f_slider", options=range(16, 41), value=22, label_visibility="collapsed")
 
 st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
 
@@ -133,31 +103,23 @@ for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=No+Image"
     
     with st.container():
-        # إنشاء بطاقة إخبارية
         col_text, col_img = st.columns([2, 1])
         
         with col_img:
             st.image(img_url, use_container_width=True)
-            # زر تحميل الصورة تحتها مباشرة
+            # زر التحميل المباشر تحت الصورة
             try:
                 img_data = requests.get(img_url).content
-                st.download_button(
-                    label="📥 تحميل الصورة",
-                    data=img_data,
-                    file_name=f"news_image_{int(time.time())}.jpg",
-                    mime="image/jpeg",
-                    key=f"dl_{item['id']}"
-                )
-            except:
-                st.error("تعذر تجهيز التحميل")
+                st.download_button(label="📥 تحميل الصورة", data=img_data, file_name=f"news_{int(time.time())}.jpg", mime="image/jpeg", key=f"dl_{item['id']}")
+            except: pass
             
         with col_text:
-            st.markdown(f"<div style='font-size:{f_size}px; font-weight:bold; color:#FFDF00; margin-bottom:10px;'>{item['title']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:{f_size}px; font-weight:bold; color:#FFDF00; margin-bottom:5px;'>{item['title']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin-bottom:10px;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd; line-height:1.6;'>{item['desc']}</p>", unsafe_allow_html=True)
             st.markdown(f"<a href='{item['link']}' target='_blank' class='read-more-btn'>فتح الرابط الأصلي 🔗</a>", unsafe_allow_html=True)
         
         st.markdown("<hr style='border: 0.5px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
 
-# تحديث تلقائي كل دقيقتين
 time.sleep(120)
 st.rerun()
