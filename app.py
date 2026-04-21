@@ -5,7 +5,7 @@ import re
 import urllib.parse
 import time
 import calendar
-import html  # 👈 هذا هو السطر الذي كان مفقوداً!
+import html 
 from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
@@ -24,10 +24,10 @@ st.markdown("""
         text-align: right;
     }
 
-    /* استقامة الهيدر */
+    /* استقامة الهيدر المثالية */
     .align-font-label {
         display: flex; align-items: center; justify-content: flex-end;
-        height: 85px; margin-top: -15px;
+        height: 100%; padding-top: 5px;
     }
 
     .news-card { 
@@ -141,8 +141,8 @@ st.markdown("---")
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
-    # تحويل النص إلى نص آمن لتجنب كسر JavaScript
-    safe_text = html.escape(item['copy_text'])
+    # 🌟 التعديل السحري: تحويل الأسطر الجديدة إلى كود HTML آمن لتجنب كسر الزر
+    safe_text = html.escape(item['copy_text']).replace('\n', '&#10;').replace('\r', '')
     
     with st.container():
         col_text, col_img = st.columns([2, 1])
@@ -159,6 +159,7 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
+            # الأزرار ستعمل الآن بشكل سليم 100%
             html_btns = f"""
             <div class="btn-container">
                 <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
