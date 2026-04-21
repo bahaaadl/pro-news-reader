@@ -5,12 +5,13 @@ import re
 import urllib.parse
 import time
 import calendar
+import json # أضفنا هذه المكتبة لضمان سلامة النصوص
 from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
 
-# --- 2. التصميم (CSS + JS للنسخ) ---
+# --- 2. التصميم و JavaScript ---
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -23,7 +24,6 @@ st.markdown("""
         text-align: right;
     }
 
-    /* استقامة الهيدر */
     .align-font-label {
         display: flex; align-items: center; justify-content: flex-end;
         height: 85px; margin-top: -15px;
@@ -34,42 +34,60 @@ st.markdown("""
         padding: 20px; margin-bottom: 25px; border: 1px solid #333;
     }
     
-    /* تنسيق الأزرار بجانب بعضها */
-    .btn-container {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-    }
+    .btn-container { display: flex; gap: 10px; margin-top: 15px; }
 
     .read-more-btn { 
         background-color: #1f77b4; color: white !important; 
         padding: 8px 15px; text-decoration: none; border-radius: 8px; 
-        font-weight: bold; font-size: 14px;
+        font-weight: bold; font-size: 14px; display: inline-block;
     }
 
     .copy-btn {
         background-color: #2d2d2d; color: #4FA3E3 !important;
         padding: 8px 15px; border-radius: 8px; cursor: pointer;
         border: 1px solid #4FA3E3; font-weight: bold; font-size: 14px;
+        display: flex; align-items: center; gap: 5px;
     }
     
     .copy-btn:hover { background-color: #4FA3E3; color: white !important; }
 </style>
 
 <script>
-function copyToClipboard(text, btnId) {
-    navigator.clipboard.writeText(text).then(function() {
-        const btn = document.getElementById(btnId);
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "✅ تم النسخ";
-        btn.style.borderColor = "#28a745";
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.borderColor = "#4FA3E3";
-        }, 2000);
-    }, function(err) {
-        console.error('فشل النسخ: ', err);
-    });
+function copyToClipboard(btn) {
+    // جلب النص من السمة المخفية في الزر نفسه
+    const text = btn.getAttribute('data-text');
+    const originalHTML = btn.innerHTML;
+    
+    // محاولة النسخ باستخدام API الحديث
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showSuccess(btn, originalHTML);
+        });
+    } else {
+        // طريقة احتياطية للمتصفحات القديمة أو غير المؤمنة بـ SSL
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showSuccess(btn, originalHTML);
+        } catch (err) {
+            alert('عذراً، متصفحك لا يدعم النسخ التلقائي');
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function showSuccess(btn, originalHTML) {
+    btn.innerHTML = "✅ تم النسخ";
+    btn.style.borderColor = "#28a745";
+    btn.style.backgroundColor = "#1b4332";
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.borderColor = "#4FA3E3";
+        btn.style.backgroundColor = "#2d2d2d";
+    }, 2000);
 }
 </script>
 """, unsafe_allow_html=True)
@@ -92,15 +110,16 @@ def fetch_news():
             img = next((l.href for l in entry.get('links', []) if 'image' in l.type), None)
             if not img and 'media_content' in entry: img = entry.media_content[0].get('url')
             
-            # تنظيف النص للنسخ
-            title = re.sub('<.*?>', '', entry.title)
-            desc = re.sub('<.*?>', '', entry.get('description', ''))
-            full_text_to_copy = f"{title}\\n\\n{desc}" # نص مجهز للنسخ
+            # تنظيف النصوص
+            title = re.sub('<.*?>', '', entry.title).strip()
+            desc = re.sub('<.*?>', '', entry.get('description', '')).strip()
+            full_text = f"{title}\n\n{desc}"
 
             items.append({
                 "title": title, "link": entry.link, "desc": desc,
-                "date": dt_str, "img": img, "id": entry.get('id', entry.link).replace('/', ''),
-                "copy_text": full_text_to_copy.replace("'", "\\'") # حماية من أخطاء علامات الاقتباس
+                "date": dt_str, "img": img, 
+                "id": "".join(filter(str.isalnum, entry.link[-10:])), # ID نظيف جداً
+                "copy_text": full_text
             })
         st.session_state.news_items = items
     except: pass
@@ -114,13 +133,14 @@ with col_label: st.markdown("<div class='align-font-label'><p style='font-weight
 with col_slider: f_size = st.select_slider("slider", options=range(16, 41), value=22, label_visibility="collapsed")
 
 st.success("✅ أهلاً بك في غرفة الأخبار.")
-
 st.markdown("---")
 
 # --- 5. عرض الأخبار ---
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250"
-    btn_id = f"btn_{item['id']}" # معرف فريد لكل زر
+    
+    # تحويل النص إلى JSON آمن لتجنب كسر JavaScript
+    safe_text = html.escape(item['copy_text'])
     
     with st.container():
         col_text, col_img = st.columns([2, 1])
@@ -137,11 +157,13 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
-            # أزرار التفاعل (فتح الرابط + نسخ النص)
+            # تعديل الأزرار: نمرر "this" للدالة ونضع النص في data-text
             html_btns = f"""
             <div class="btn-container">
                 <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
-                <div id="{btn_id}" class="copy-btn" onclick="copyToClipboard('{item['copy_text']}', '{btn_id}')">نسخ النص 📋</div>
+                <div class="copy-btn" data-text="{safe_text}" onclick="copyToClipboard(this)">
+                    نسخ النص 📋
+                </div>
             </div>
             """
             st.markdown(html_btns, unsafe_allow_html=True)
