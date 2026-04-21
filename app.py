@@ -83,17 +83,25 @@ def fetch_news():
 fetch_news()
 
 # --- 4. الواجهة العلوية (العنوان + حجم الخط الموسط) ---
-col_logo, col_font = st.columns([3, 1])
+col_logo, col_space, col_font_label, col_slider = st.columns([3, 0.5, 0.5, 1.5], vertical_alignment="center")
 
 with col_logo:
-    st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: #4FA3E3; margin:0; padding:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
-with col_font:
-    # وضع السلايدر في حاوية لضمان التوسيط البصري
-    f_size = st.select_slider("حجم الخط", options=range(16, 41), value=22)
+with col_font_label:
+    # وضع كلمة "حجم الخط" بجانب السلايدر مباشرة
+    st.markdown("<p style='margin:0; padding:0; font-weight:bold; white-space:nowrap;'>حجم الخط</p>", unsafe_allow_html=True)
+
+with col_slider:
+    # label_visibility="collapsed" تخفي العنوان الافتراضي وتجعل السلايدر يبدأ من المنتصف
+    f_size = st.select_slider(
+        "font_size_slider", 
+        options=range(16, 41), 
+        value=22, 
+        label_visibility="collapsed"
+    )
 
 st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
-
 # --- 5. أداة استخراج الصور ---
 with st.expander("📸 استخراج صورة من منصة X"):
     tweet_url = st.text_input("رابط التغريدة")
