@@ -5,13 +5,12 @@ import re
 import urllib.parse
 import time
 import calendar
-import html 
 from datetime import datetime, timezone, timedelta
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
 
-# --- 2. التصميم (CSS + JS للنسخ) ---
+# --- 2. التصميم (CSS) فقط بدون كود JS خارجي ---
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -24,7 +23,7 @@ st.markdown("""
         text-align: right;
     }
 
-    /* استقامة الهيدر المثالية */
+    /* استقامة الهيدر */
     .align-font-label {
         display: flex; align-items: center; justify-content: flex-end;
         height: 100%; padding-top: 5px;
@@ -57,42 +56,6 @@ st.markdown("""
     
     .copy-btn:hover { background-color: #4FA3E3; color: white !important; }
 </style>
-
-<script>
-function copyToClipboard(btn) {
-    const text = btn.getAttribute('data-text');
-    const originalHTML = btn.innerHTML;
-    
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
-            showSuccess(btn, originalHTML);
-        });
-    } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showSuccess(btn, originalHTML);
-        } catch (err) {
-            alert('عذراً، متصفحك لا يدعم النسخ التلقائي');
-        }
-        document.body.removeChild(textArea);
-    }
-}
-
-function showSuccess(btn, originalHTML) {
-    btn.innerHTML = "✅ تم النسخ";
-    btn.style.borderColor = "#28a745";
-    btn.style.backgroundColor = "#1b4332";
-    setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.style.borderColor = "#4FA3E3";
-        btn.style.backgroundColor = "#2d2d2d";
-    }, 2000);
-}
-</script>
 """, unsafe_allow_html=True)
 
 # --- 3. جلب الأخبار ---
@@ -141,8 +104,8 @@ st.markdown("---")
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
-    # 🌟 التعديل السحري: تحويل الأسطر الجديدة إلى كود HTML آمن لتجنب كسر الزر
-    safe_text = html.escape(item['copy_text']).replace('\n', '&#10;').replace('\r', '')
+    # تحويل النص بالكامل إلى كود آمن جداً للـ JavaScript
+    encoded_text = urllib.parse.quote(item['copy_text'])
     
     with st.container():
         col_text, col_img = st.columns([2, 1])
@@ -159,13 +122,31 @@ for item in st.session_state.news_items:
             st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
             
-            # الأزرار ستعمل الآن بشكل سليم 100%
+            # زر النسخ مع كود الجافاسكريبت المدمج فيه مباشرة (يحل مشكلة Streamlit)
             html_btns = f"""
             <div class="btn-container">
                 <a href="{item['link']}" target="_blank" class="read-more-btn">فتح الرابط 🔗</a>
-                <div class="copy-btn" data-text="{safe_text}" onclick="copyToClipboard(this)">
-                    نسخ النص 📋
-                </div>
+                <div class="copy-btn" onclick="
+                    var btn = this;
+                    var txt = decodeURIComponent('{encoded_text}');
+                    if (navigator.clipboard) {{
+                        navigator.clipboard.writeText(txt).then(() => {{
+                            btn.innerHTML = '✅ تم النسخ';
+                            btn.style.borderColor = '#28a745';
+                            setTimeout(() => {{ btn.innerHTML = 'نسخ النص 📋'; btn.style.borderColor = '#4FA3E3'; }}, 2000);
+                        }});
+                    }} else {{
+                        var el = document.createElement('textarea');
+                        el.value = txt;
+                        document.body.appendChild(el);
+                        el.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(el);
+                        btn.innerHTML = '✅ تم النسخ';
+                        btn.style.borderColor = '#28a745';
+                        setTimeout(() => {{ btn.innerHTML = 'نسخ النص 📋'; btn.style.borderColor = '#4FA3E3'; }}, 2000);
+                    }}
+                ">نسخ النص 📋</div>
             </div>
             """
             st.markdown(html_btns, unsafe_allow_html=True)
