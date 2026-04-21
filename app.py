@@ -67,18 +67,30 @@ def fetch_news():
         feed = feedparser.parse(url)
         items = []
         for entry in feed.entries[:30]:
+            # --- تحويل الوقت إلى توقيت بغداد (GMT+3) ---
+            pub = entry.get('published_parsed')
+            dt_str = ""
+            if pub:
+                # تحويل من توقيت جرينتش إلى توقيت محلي (+3 ساعات)
+                dt = datetime.fromtimestamp(calendar.timegm(pub), tz=timezone.utc).astimezone(timezone(timedelta(hours=3)))
+                dt_str = dt.strftime('%I:%M %p | %Y/%m/%d')
+            
+            # جلب الصورة
             img = next((l.href for l in entry.get('links', []) if 'image' in l.type), None)
-            if not img and 'media_content' in entry: img = entry.media_content[0].get('url')
+            if not img and 'media_content' in entry: 
+                img = entry.media_content[0].get('url')
             
             items.append({
                 "title": re.sub('<.*?>', '', entry.title),
                 "link": entry.link,
                 "desc": re.sub('<.*?>', '', entry.get('description', '')),
+                "date": dt_str, # الوقت المحلي الجديد
                 "img": img,
                 "id": entry.get('id', entry.link)
             })
         st.session_state.news_items = items
-    except: pass
+    except Exception as e:
+        st.error(f"خطأ في جلب البيانات: {e}")
 
 fetch_news()
 
