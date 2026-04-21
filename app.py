@@ -29,6 +29,10 @@ if not device_id:
 st.set_page_config(page_title="قارئ الأخبار الاحترافي", layout="wide", page_icon="📰")
 
 # --- CSS لإخفاء شريط الإعدادات وتحسين التصميم ---
+import streamlit as st
+# (استدعاء باقي مكتباتك هنا مثل pandas أو requests)
+
+# 1. كود التصميم وإخفاء القوائم (الكود الذي أرسلته لي الآن)
 st.markdown("""
 <style>
 /* إخفاء قوائم ستريمليت والشريط الأبيض */
@@ -63,15 +67,15 @@ footer {visibility: hidden;}
 /* 📱 التوافق التلقائي مع شاشات الموبايل (التعديل السحري) */
 @media (max-width: 768px) {
     .news-card {
-        flex-direction: column; /* ترتيب النص والصورة فوق بعضهما */
+        flex-direction: column; 
         padding: 15px;
     }
     .news-content {
-        padding-left: 0; /* إزالة الفراغ الجانبي */
-        margin-bottom: 15px; /* إضافة مسافة بين النص والصورة */
+        padding-left: 0; 
+        margin-bottom: 15px; 
     }
     .news-image-container {
-        width: 100%; /* جعل الصورة تأخذ عرض شاشة الموبايل بالكامل */
+        width: 100%; 
         height: auto;
         min-height: 200px;
         max-height: 300px;
@@ -79,6 +83,13 @@ footer {visibility: hidden;}
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================
+# 2. كود جلب الأخبار وعرضها
+# ==========================================
+st.title("📰 منصة موجة نيوز")
+
+# (ضع هنا الكود الخاص بك الذي يقوم بجلب الأخبار من RSS أو تويتر وعرضها داخل كلاس .news-card)
 
 def play_notification_sound():
     sound_url = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
