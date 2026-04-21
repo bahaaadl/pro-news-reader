@@ -23,7 +23,15 @@ st.markdown("""
         text-align: right;
     }
 
-    /* تصميم البطاقة */
+    /* 🎯 حيلة الاستقامة المليمترية للنص مع الدائرة */
+    .align-font-label {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        height: 85px; /* ارتفاع مدروس ليتقاطع مع السلايدر */
+        margin-top: -15px; /* رفع النص للأعلى */
+    }
+
     .news-card { 
         background-color: #1E1E1E; 
         border-radius: 15px; 
@@ -40,7 +48,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. جلب الأخبار بتوقيت بغداد (GMT+3) ---
+# --- 3. جلب الأخبار بتوقيت بغداد ---
 if "news_items" not in st.session_state:
     st.session_state.news_items = []
 
@@ -50,10 +58,10 @@ def fetch_news():
         feed = feedparser.parse(url)
         items = []
         for entry in feed.entries[:30]:
-            # ضبط الوقت لتوقيت العراق المحلي
             pub = entry.get('published_parsed')
             dt_str = ""
             if pub:
+                # تحويل الوقت لـ GMT+3 (العراق)
                 dt = datetime.fromtimestamp(calendar.timegm(pub), tz=timezone.utc).astimezone(timezone(timedelta(hours=3)))
                 dt_str = dt.strftime('%I:%M %p | %Y/%m/%d')
             
@@ -69,23 +77,23 @@ def fetch_news():
                 "id": entry.get('id', entry.link)
             })
         st.session_state.news_items = items
-    except Exception as e:
-        st.error(f"خطأ في جلب البيانات: {e}")
+    except: pass
 
 fetch_news()
 
-# --- 4. الواجهة العلوية (الاستقامة المثالية) ---
-col_logo, col_font_label, col_slider = st.columns([3, 0.6, 1.4], vertical_alignment="center")
+# --- 4. الواجهة العلوية (الاستقامة المليمترية) ---
+# عمود العنوان - عمود فارغ للتوسيع - عمود التسمية - عمود السلايدر
+col_logo, _, col_label, col_slider = st.columns([3, 0.2, 0.4, 1.4], vertical_alignment="center")
 
 with col_logo:
     st.markdown("<h1 style='color: #4FA3E3; margin:0; padding:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
-with col_font_label:
-    # إزاحة بسيطة للأسفل (18px) ليصبح النص بمستوى الدائرة تماماً
-    st.markdown("<div style='padding-top: 18px;'><p style='margin:0; font-weight:bold; white-space:nowrap;'>حجم الخط</p></div>", unsafe_allow_html=True)
+with col_label:
+    # استخدام كلاس align-font-label لرفع النص لمستوى الدائرة
+    st.markdown("<div class='align-font-label'><p style='font-weight:bold; font-size:16px; margin:0;'>حجم الخط</p></div>", unsafe_allow_html=True)
 
 with col_slider:
-    f_size = st.select_slider("f_slider", options=range(16, 41), value=22, label_visibility="collapsed")
+    f_size = st.select_slider("slider", options=range(16, 41), value=22, label_visibility="collapsed")
 
 st.success("✅ تم التحقق من الهوية بنجاح. أهلاً بك في غرفة الأخبار.")
 
@@ -100,17 +108,17 @@ st.markdown("---")
 
 # --- 6. عرض الأخبار ---
 for item in st.session_state.news_items:
-    img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=No+Image"
+    img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
     with st.container():
         col_text, col_img = st.columns([2, 1])
         
         with col_img:
             st.image(img_url, use_container_width=True)
-            # زر التحميل المباشر تحت الصورة
+            # زر التحميل تحت الصورة مباشرة وبنفس العرض
             try:
                 img_data = requests.get(img_url).content
-                st.download_button(label="📥 تحميل الصورة", data=img_data, file_name=f"news_{int(time.time())}.jpg", mime="image/jpeg", key=f"dl_{item['id']}")
+                st.download_button(label="📥 تحميل الصورة", data=img_data, file_name=f"news_{int(time.time())}.jpg", mime="image/jpeg", key=f"dl_{item['id']}", use_container_width=True)
             except: pass
             
         with col_text:
