@@ -8,6 +8,7 @@ import time
 import calendar
 import json
 from datetime import datetime, timezone, timedelta
+from deep_translator import GoogleTranslator  # المكتبة الجديدة للترجمة
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="موجة نيوز", layout="wide", page_icon="📰")
@@ -38,6 +39,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- 2.5 القائمة الجانبية لإعدادات اللغة ---
+with st.sidebar:
+    st.markdown("### 🌐 إعدادات الترجمة")
+    target_lang = st.selectbox(
+        "اختر لغة عرض الأخبار:",
+        options=["العربية", "English", "Kurdish (Sorani)"],
+        index=0
+    )
+    
+    # تحويل اسم اللغة إلى كود
+    lang_map = {"العربية": "ar", "English": "en", "Kurdish (Sorani)": "ku"}
+    selected_lang_code = lang_map[target_lang]
+
+# دالة الترجمة (مدمجة مع الذاكرة المؤقتة لتسريع الموقع)
+@st.cache_data(show_spinner=False)
+def translate_text(text, target_code):
+    if not text or target_code == "ar": return text
+    try:
+        return GoogleTranslator(source='auto', target=target_code).translate(text)
+    except:
+        return text
+
 # --- 3. جلب الأخبار ---
 if "news_items" not in st.session_state: st.session_state.news_items = []
 
@@ -59,7 +82,7 @@ def fetch_news():
             title = re.sub('<.*?>', '', entry.title).strip()
             desc = re.sub('<.*?>', '', entry.get('description', '')).strip()
             
-            # تجهيز النص المنسوخ
+            # تجهيز النص المنسوخ (سيتم ترجمته لاحقاً في الأسفل)
             full_text = f"{title}\n\n{desc}"
 
             items.append({
@@ -74,19 +97,15 @@ def fetch_news():
 fetch_news()
 
 # --- 4. الواجهة العلوية ---
-# --- 4. الواجهة العلوية ---
-# تم تعديل نسب الأعمدة ليكون مربع الخط صغيراً وأنيقاً مثل الوورد (0.6)
 col_logo, _, col_label, col_font_box = st.columns([3, 0.5, 0.4, 0.6], vertical_alignment="center")
 
 with col_logo: 
     st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
 with col_label: 
-    # محاذاة دقيقة لكلمة "حجم الخط" لتكون بمستوى المربع تماماً
     st.markdown("<div style='display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-top: 2px;'><p style='font-weight:bold; margin:0; font-size:16px;'>حجم الخط</p></div>", unsafe_allow_html=True)
 
 with col_font_box: 
-    # قائمة منسدلة تشبه الوورد تماماً (من 20 إلى 70)، وتبدأ افتراضياً من رقم 22
     f_size = st.selectbox("حجم الخط", options=range(20, 71), index=2, label_visibility="collapsed")
 
 st.success("✅ أهلاً بك في غرفة الأخبار.")
@@ -107,6 +126,14 @@ st.markdown("---")
 for item in st.session_state.news_items:
     img_url = item['img'] if item['img'] else "https://via.placeholder.com/350x250?text=Mawja+News"
     
+    # === تطبيق الترجمة والاتجاه ===
+    display_title = translate_text(item['title'], selected_lang_code)
+    display_desc = translate_text(item['desc'], selected_lang_code)
+    
+    # ضبط الاتجاه (LTR للإنجليزي، RTL للعربي والكردي)
+    text_dir = "ltr" if selected_lang_code == "en" else "rtl"
+    align_txt = "left" if selected_lang_code == "en" else "right"
+    
     with st.container():
         col_text, col_img = st.columns([2, 1])
         
@@ -118,12 +145,18 @@ for item in st.session_state.news_items:
             except: pass
             
         with col_text:
-            st.markdown(f"<div style='font-size:{f_size}px; font-weight:bold; color:#FFDF00;'>{item['title']}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{item['desc']}</p>", unsafe_allow_html=True)
+            # تغليف النص بحاوية تدعم الاتجاه الصحيح
+            st.markdown(f"""
+            <div dir="{text_dir}" style="text-align: {align_txt};">
+                <div style='font-size:{f_size}px; font-weight:bold; color:#FFDF00;'>{display_title}</div>
+                <div style='color:#87CEEB; font-size:14px; margin:5px 0;'>{item['date']}</div>
+                <p style='font-size:{max(14, f_size-6)}px; color:#ddd;'>{display_desc}</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # --- كود الأزرار السحري ---
-            safe_text_js = json.dumps(item['copy_text'])
+            # --- كود الأزرار السحري (يتم نسخ النص المترجم الآن) ---
+            translated_full_text = f"{display_title}\n\n{display_desc}"
+            safe_text_js = json.dumps(translated_full_text)
             
             html_btns = f"""
             <!DOCTYPE html>
