@@ -86,22 +86,23 @@ fetch_news()
 # تقسيم دقيق للأعمدة لتستوعب السلايدر والمربع معاً بشكل أنيق
 col_logo, col_lang_lbl, col_lang_slider, col_font_lbl, col_font_box = st.columns([2.5, 0.4, 1.5, 0.5, 0.6], vertical_alignment="center")
 
+# --- 4. الواجهة العلوية (نظام خيارات اللغة + حجم الخط) ---
+# تقسيم الأعمدة لضمان ظهور الخيارات بجانب بعضها بوضوح
+col_logo, col_lang, col_font_lbl, col_font_box = st.columns([2.5, 2.0, 0.5, 0.6], vertical_alignment="center")
+
 with col_logo: 
     st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
-with col_lang_lbl:
-    # علامة وتسمية اللغة
-    st.markdown("<div class='align-font-label'><p style='font-weight:bold; margin:0; font-size:16px;'>🌐 اللغة</p></div>", unsafe_allow_html=True)
-
-with col_lang_slider:
-    # سلايدر اللغة الأفقي
-    target_lang = st.select_slider(
-        "lang_slider", 
-        options=["عربي", "English", "كردي"], 
-        value="عربي", 
-        label_visibility="collapsed"
+with col_lang:
+    # خيارات اللغة الثلاث كأزرار اختيار أفقية (ضغطة واحدة للتحويل)
+    target_lang = st.radio(
+        "اختر اللغة:",
+        options=["عربي", "English", "كردي"],
+        horizontal=True,
+        label_visibility="collapsed" # إخفاء العنوان لتوفير مساحة
     )
-    # تعيين كود الترجمة (تم استخدام ckb للكردية السورانية لتكون دقيقة ومفهومة)
+    
+    # خريطة الأكواد (ar للعربي، en للإنجليزي، ckb للكردي السوراني المفهوم)
     lang_map = {"عربي": "ar", "English": "en", "كردي": "ckb"}
     selected_lang_code = lang_map[target_lang]
 
@@ -109,9 +110,10 @@ with col_font_lbl:
     st.markdown("<div class='align-font-label'><p style='font-weight:bold; margin:0; font-size:16px;'>حجم الخط</p></div>", unsafe_allow_html=True)
 
 with col_font_box: 
+    # مربع اختيار حجم الخط (نظام الوورد)
     f_size = st.selectbox("حجم الخط", options=range(20, 71), index=2, label_visibility="collapsed")
 
-st.success("✅ أهلاً بك في غرفة الأخبار.")
+st.success("✅ تم تحديث الواجهة. أهلاً بك في غرفة الأخبار.")
 st.markdown("---")
 
 # --- 5. أداة استخراج الصور 📸 ---
