@@ -2,3 +2,4 @@ streamlit
 feedparser
 requests
 streamlit-cookies-manager
+deep-translator
