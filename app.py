@@ -40,7 +40,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2.5 القائمة الجانبية لإعدادات اللغة ---
-with st.sidebar:
+with st.sidebar: 
     st.markdown("### 🌐 إعدادات الترجمة")
     target_lang = st.selectbox(
         "اختر لغة عرض الأخبار:",
