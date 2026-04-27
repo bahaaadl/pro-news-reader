@@ -47,7 +47,7 @@ with st.sidebar:
         options=["العربية", "English", "Kurdish (Sorani)"],
         index=0
     )
-    lang_map = {"العربية": "ar", "English": "en", "Kurdish (Sorani)": "ku"}
+    lang_map = {"العربية": "ar", "English": "en", "Kurdish (Sorani)": "ckb"}
     selected_lang_code = lang_map[target_lang]
 
 @st.cache_data(show_spinner=False)
