@@ -82,36 +82,35 @@ def fetch_news():
 
 fetch_news()
 
-# --- 4. الواجهة العلوية (قوائم منسدلة للغة وحجم الخط) ---
-# تقسيم الأعمدة لترتيب: الشعار - كلمة اللغة - مربع اللغة - كلمة الخط - مربع الخط
-col_logo, col_lang_lbl, col_lang_box, col_font_lbl, col_font_box = st.columns([3, 0.4, 0.8, 0.5, 0.6], vertical_alignment="center")
+# --- 4. الواجهة العلوية (تحديث لضمان ظهور المربعات) ---
+# تقليل عدد الأعمدة لضمان وجود مساحة كافية لكل عنصر
+col_logo, col_lang, col_font = st.columns([3, 1.5, 1.2], vertical_alignment="center")
 
 with col_logo: 
     st.markdown("<h1 style='color: #4FA3E3; margin:0;'>📰 منصة موجة نيوز</h1>", unsafe_allow_html=True)
 
-with col_lang_lbl:
-    st.markdown("<div class='align-font-label'><p style='font-weight:bold; margin:0; font-size:16px;'>🌐 اللغة</p></div>", unsafe_allow_html=True)
-
-with col_lang_box:
-    # القائمة المنسدلة (السلايد) الخاص باللغة
+with col_lang:
+    # دمج كلمة "اللغة" داخل المربع لضمان المساحة والظهور
     target_lang = st.selectbox(
-        "اللغة",
+        "🌐 اللغة",
         options=["عربي", "English", "كردي"],
         index=0,
-        label_visibility="collapsed"
+        key="lang_select" # إضافة مفتاح فريد لضمان عدم الاختفاء
     )
-    # خريطة الأكواد
+    # خريطة الأكواد (ckb للسورانية المفهومة)
     lang_map = {"عربي": "ar", "English": "en", "كردي": "ckb"}
     selected_lang_code = lang_map[target_lang]
 
-with col_font_lbl: 
-    st.markdown("<div class='align-font-label'><p style='font-weight:bold; margin:0; font-size:16px;'>حجم الخط</p></div>", unsafe_allow_html=True)
+with col_font: 
+    # دمج كلمة "حجم الخط" داخل المربع (مثل نظام وورد)
+    f_size = st.selectbox(
+        "📏 حجم الخط", 
+        options=range(20, 71), 
+        index=2, 
+        key="font_select" # إضافة مفتاح فريد
+    )
 
-with col_font_box: 
-    # القائمة المنسدلة (السلايد) الخاص بحجم الخط
-    f_size = st.selectbox("حجم الخط", options=range(20, 71), index=2, label_visibility="collapsed")
-
-st.success("✅ تم تحديث الواجهة. أهلاً بك في غرفة الأخبار.")
+st.success("✅ أهلاً بك في غرفة الأخبار.")
 st.markdown("---")
 
 # --- 5. أداة استخراج الصور 📸 ---
